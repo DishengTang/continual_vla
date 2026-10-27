@@ -1,0 +1,4 @@
+# Direct dependencies. The fully resolved environment is recorded in requirements.lock.txt.
+lerobot[smolvla,dataset]==0.6.1
+mani_skill==3.0.1
+pyyaml

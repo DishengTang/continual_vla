@@ -1,0 +1,9 @@
+# One job per line:  <name>|<prerequisite (path that must exist) or ->|<arguments for python>
+# Run from the repository root:  source scripts/env.sh && bash experiments/run_jobs.sh experiments/13_joint_three_task.jobs
+
+# Joint training on all three tasks at once from the pretrained policy (8 PushCube, 12 red-on-green and 12
+# green-on-red examples in every batch of 32; 32500 updates): a reference, not a continual learner.
+
+s0_joint3|-|scripts/train_stage.py --task StackCubeGreenOnRed-v1 --n-train 900 --joint-task PushCube-v1 StackCube-v1 --joint-frac 0.2615 0.3692 --joint-n-train 200 900 --steps 32500 --eval-every 100000 --seed 0 --final-tasks PushCube-v1 StackCube-v1 StackCubeGreenOnRed-v1 --final-split test --final-episodes 100 --out $CVLA_RUNS/final/s0/joint3
+s1_joint3|-|scripts/train_stage.py --task StackCubeGreenOnRed-v1 --n-train 900 --joint-task PushCube-v1 StackCube-v1 --joint-frac 0.2615 0.3692 --joint-n-train 200 900 --steps 32500 --eval-every 100000 --seed 1 --final-tasks PushCube-v1 StackCube-v1 StackCubeGreenOnRed-v1 --final-split test --final-episodes 100 --out $CVLA_RUNS/final/s1/joint3
+s2_joint3|-|scripts/train_stage.py --task StackCubeGreenOnRed-v1 --n-train 900 --joint-task PushCube-v1 StackCube-v1 --joint-frac 0.2615 0.3692 --joint-n-train 200 900 --steps 32500 --eval-every 100000 --seed 2 --final-tasks PushCube-v1 StackCube-v1 StackCubeGreenOnRed-v1 --final-split test --final-episodes 100 --out $CVLA_RUNS/final/s2/joint3

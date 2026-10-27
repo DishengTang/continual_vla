@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Consolidate, then Gate</title>
+<meta name="description" content="Continual learning of manipulation skills in a vision-language-action policy with instruction-gated consolidation.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap">
+<style>
+:root {
+  color-scheme: light;
+  --bg: #fcfcfb; --fg: #121211; --fg2: #52514e; --fg3: #7b7a75; --rule: #e4e3de; --card: #f4f3ef;
+  --accent: #2a78d6; --accent-soft: #e6effa; --good: #1d7a3a; --bad: #c2412d;
+  --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 16.5px/1.65 var(--sans);
+       -webkit-font-smoothing: antialiased; }
+main { max-width: 1040px; margin: 0 auto; padding: 0 max(20px, env(safe-area-inset-left)) 80px; }
+.prose { max-width: 720px; margin: 0 auto; }
+h1, h2, h3 { text-wrap: balance; }
+h1 { font: 700 clamp(2rem, 4.6vw, 3.1rem)/1.12 var(--serif); letter-spacing: -0.01em; margin: 0 0 18px; }
+h2 { font: 700 1.65rem/1.25 var(--serif); margin: 72px 0 14px; padding-top: 8px; }
+h3 { font: 700 1.3rem/1.3 var(--serif); margin: 56px 0 10px; }
+h4 { font: 600 1.04rem/1.35 var(--sans); margin: 34px 0 8px; }
+p { margin: 0 0 14px; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+.eyebrow { font: 600 0.78rem/1 var(--sans); letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); }
+header.hero { text-align: center; padding: 72px 0 24px; }
+.hero .tagline { font-size: 1.16rem; color: var(--fg2); max-width: 760px; margin: 0 auto 22px; }
+.authors { color: var(--fg2); margin-bottom: 22px; }
+.buttons { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 9px 18px; border-radius: 999px;
+       background: var(--fg); color: #fff; font-weight: 500; font-size: 0.95rem; }
+.btn.ghost { background: transparent; color: var(--fg); box-shadow: inset 0 0 0 1.5px var(--rule); }
+.btn:hover { text-decoration: none; opacity: 0.88; }
+figure { margin: 26px 0; }
+figcaption { color: var(--fg2); font-size: 0.9rem; line-height: 1.55; margin-top: 10px; max-width: 760px; }
+figure.center figcaption { margin-left: auto; margin-right: auto; }
+.tldr { background: var(--card); border-radius: 14px; padding: 22px 26px; margin: 34px auto 0; max-width: 820px; }
+.tldr ul { margin: 6px 0 0; padding-left: 20px; }
+.tldr li { margin: 7px 0; }
+.num { font-variant-numeric: tabular-nums; font-weight: 600; }
+.videos { display: grid; gap: 14px; }
+.videos.two { grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: 640px; margin: 0 auto; }
+.videos.three { grid-template-columns: repeat(3, minmax(0, 1fr)); max-width: 860px; margin: 0 auto; }
+.clip { position: relative; background: var(--card); border-radius: 10px; overflow: hidden; }
+.clip video { display: block; width: 100%; height: auto; aspect-ratio: 1 / 1; }
+.clip .label { display: flex; justify-content: space-between; align-items: center; gap: 8px;
+               padding: 8px 12px; font-size: 0.86rem; }
+.clip .label b { font-weight: 600; }
+.badge { font-weight: 700; font-size: 0.78rem; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+.badge.ok { color: var(--good); background: #e3f3e7; }
+.badge.no { color: var(--bad); background: #fbe7e3; }
+.teaser-title { font: 700 1.35rem/1.3 var(--serif); text-align: center; margin: 4px 0 16px; }
+.sequence { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr); gap: 10px;
+            align-items: center; max-width: 900px; margin: 0 auto; }
+.sequence .step { font: 600 0.78rem/1 var(--sans); letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); padding: 10px 12px 0; }
+.sequence .then { display: flex; flex-direction: column; align-items: center; color: var(--fg3); font-size: 0.75rem; }
+.sequence .then b { font-size: 1.7rem; line-height: 1; color: var(--accent); }
+.rowlabel { grid-column: 1 / -1; font: 600 0.92rem/1.3 var(--sans); color: var(--fg2); margin: 10px 0 -4px; }
+.rowlabel q { font-style: italic; }
+.chart svg { width: 100%; height: auto; display: block; }
+.chart svg text { font-family: var(--sans) !important; }
+.chart.narrow { max-width: 680px; margin-left: auto; margin-right: auto; }
+.cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; align-items: start; }
+.cols > * { min-width: 0; }
+.tablewrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 0.92rem; font-variant-numeric: tabular-nums; }
+th, td { padding: 8px 10px; text-align: right; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; }
+thead th { font-weight: 600; color: var(--fg2); border-bottom: 1.5px solid var(--fg); vertical-align: bottom; }
+tr.ours td { background: var(--accent-soft); font-weight: 600; }
+tr.ref td { color: var(--fg2); }
+tr.sep td { border-bottom: 1.5px solid var(--fg3); }
+.setup td:nth-child(2), .setup td:nth-child(3), .setup th:nth-child(2), .setup th:nth-child(3) { text-align: left; }
+.swatch { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 8px; vertical-align: 0; }
+.frames { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+.frames figure { margin: 0; }
+.frames img { width: 100%; border-radius: 8px; display: block; }
+.frames figcaption { font-size: 0.8rem; margin-top: 6px; }
+.io { display: grid; grid-template-columns: 1fr auto 1.1fr auto 1fr; gap: 12px; align-items: center;
+      background: var(--card); border-radius: 14px; padding: 18px 20px; font-size: 0.9rem; }
+.io .box { background: #fff; border-radius: 10px; padding: 12px 14px; box-shadow: 0 0 0 1px var(--rule); }
+.io .box b { display: block; font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--fg3); margin-bottom: 4px; }
+.io .arrow { color: var(--fg3); font-size: 1.4rem; }
+.callout { border-left: 3px solid var(--accent); padding: 4px 0 4px 16px; color: var(--fg2); margin: 18px 0; }
+.grid2x2 { width: auto; margin: 0 auto; }
+.grid2x2 td, .grid2x2 th { text-align: center; padding: 10px 16px; }
+.grid2x2 td.hi { background: var(--accent-soft); font-weight: 700; }
+pre { background: #1d1d1b; color: #f2f1ec; border-radius: 12px; padding: 18px 20px; overflow-x: auto;
+      font: 0.84rem/1.6 var(--mono); }
+.refs { font-size: 0.88rem; color: var(--fg2); padding-left: 18px; }
+.refs li { margin: 6px 0; }
+footer { border-top: 1px solid var(--rule); margin-top: 72px; padding-top: 22px; color: var(--fg3); font-size: 0.85rem; text-align: center; }
+nav.toc { display: flex; gap: 18px; justify-content: center; flex-wrap: wrap; font-size: 0.9rem; margin-top: 26px; }
+nav.toc a { color: var(--fg2); }
+@media (max-width: 760px) {
+  .cols, .videos.three, .sequence { grid-template-columns: minmax(0, 1fr); }
+  .sequence .then b { transform: rotate(90deg); }
+  .frames { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .io { grid-template-columns: 1fr; }
+  .io .arrow { transform: rotate(90deg); justify-self: center; }
+  h2 { margin-top: 56px; }
+}
+</style>
+</head>
+<body>
+<main>
+
+<header class="hero">
+  <div class="eyebrow">Vision-language-action policies · Robot manipulation · ManiSkill 3</div>
+  <h1>Consolidate, then Gate:<br>Continual Learning of Manipulation Skills Without Forgetting</h1>
+  <p class="tagline">A pretrained vision-language-action policy learns manipulation tasks one after another.
+  Re-expressing each skill in a small core of its action expert, then switching the other units off for
+  that skill's instruction and freezing the core, keeps every earlier skill exactly as it was &mdash;
+  without storing any old data.</p>
+  <div class="authors">{{authors}}</div>
+  <div class="buttons">
+    <a class="btn" href="{{repo_url}}">Code</a>
+    <a class="btn ghost" href="{{repo_url}}/tree/main/experiments">Reproduce</a>
+    <a class="btn ghost" href="#results">Results</a>
+  </div>
+  <nav class="toc"><a href="#setup">Setup</a><a href="#method">Method</a><a href="#results">Results</a>
+  <a href="#three">After all three tasks</a><a href="#packnet">Against PackNet</a><a href="#why">Why it works</a><a href="#limits">Limitations</a><a href="#reproduce">Reproduce</a></nav>
+</header>
+
+<figure class="center teaser">
+  <div class="teaser-title">One policy learns three skills one after another</div>
+  <div class="sequence">{{teaser_videos}}</div>
+  <figcaption style="text-align:center">The tasks are learned in this order, each once; earlier tasks are never revisited and none of their data is kept.
+  All three clips show the <b>final</b> policy ({{video_config}}), after task 3 was learned, on new test scenes: it still performs the two earlier skills.
+  Example episodes; success rates over all test scenes are in <a href="#results">Results</a>.</figcaption>
+</figure>
+
+<div class="tldr">
+  <div class="eyebrow">Summary</div>
+  <ul>
+    <li>A SmolVLA policy, seeing only a camera image, its joint angles and an instruction, learns <b>PushCube</b> and then
+    <b>StackCube</b> in simulation. Plain fine-tuning keeps <span class="num">{{seqft_push}}</span>% of pushing; experience replay of 50 stored examples keeps <span class="num">{{er50_push}}</span>%.</li>
+    <li><b>Consolidate-and-gate, with 5% of the network per task, keeps pushing at <span class="num">{{gate_push}}</span>%</b> (it was
+    {{gate_push_before}}% before stacking was learned) and learns stacking to <span class="num">{{gate_stack}}</span>%. Its two-task average,
+    <span class="num">{{gate_avg}}</span>%, matches replay of 500 stored examples ({{er500_avg}}%, 94 MiB of old data); the gate stores none.</li>
+    <li>A third task asks for the <b>opposite stack in the same scene</b>. With each method at its best configuration (the gate and PackNet
+    at 5% of the network per task), the gated policy
+    averages <span class="num">{{three_gate_avg}}</span>% over the three tasks, the highest of the continual learners: PackNet
+    {{three_packnet_avg}}%, replay of 500 examples {{three_er500_avg}}%, of 50 examples {{three_er50_avg}}%, fine-tuning {{three_seqft_avg}}%. It still stacks
+    red on green when asked <span class="num">{{three_gate_rog}}</span>% of the time (fine-tuning {{three_seqft_rog}}%, building the wrong stack
+    <span class="num">{{three_seqft_wrong}}</span>% of the time; replay {{three_er50_rog}}&ndash;{{three_er500_rog}}%).</li>
+    <li><b>PackNet</b> reserves a share of every weight matrix per task instead of whole units. At 5% per task, room for twenty tasks, the gate
+    keeps pushing at <span class="num">{{k5_gate_push}}</span>% against {{k5_packnet_push}}% and leads by {{gate_gap}} points after three tasks
+    (seeds 0 / 1 / 2: {{gate_gap_seeds}}); at a quarter per task, room for four, PackNet leads ({{q_packnet_avg}}% vs {{q_gate_avg}}%). The gate's
+    task records take {{core_json_kb}} kB instead of a {{packnet_map_mb}} MB per-weight map (<a href="#packnet">details</a>).</li>
+    <li>The price is plasticity: frozen units make new skills harder to learn (stacking {{gate_stack}}% vs {{seqft_stack}}% for fine-tuning in the two-task study).</li>
+  </ul>
+</div>
+
+<section id="setup">
+<div class="prose">
+<h2>Setup</h2>
+<p>A simulated Franka Panda arm in <a href="https://www.maniskill.ai/">ManiSkill 3</a> learns tasks in sequence from
+motion-planner demonstrations. The policy is <a href="https://arxiv.org/abs/2506.01844">SmolVLA</a> (0.45B parameters):
+its vision-language backbone stays frozen and its 100M-parameter flow-matching action expert is fine-tuned.
+Each task is learned once and never revisited; after each task every earlier task is tested again on new scenes.</p>
+</div>
+<figure>
+  <div class="frames">{{task_frames}}</div>
+  <figcaption>The three tasks, from demonstrations. Both stacking tasks start from the <i>same</i> scene (same reset seed);
+  only the instruction says which cube goes on top.</figcaption>
+</figure>
+<div class="io">
+  <div class="box"><b>Policy input</b>One 256&times;256 camera image, 9 joint positions (7 arm, 2 fingers), the instruction text.</div>
+  <div class="arrow">&rarr;</div>
+  <div class="box"><b>SmolVLA</b>Frozen vision-language backbone; trainable action expert (flow matching, 10 denoising steps).</div>
+  <div class="arrow">&rarr;</div>
+  <div class="box"><b>Output</b>50 future actions (hand displacement x, y, z and gripper) at 20 Hz; the first 5 are executed, then the policy looks again.</div>
+</div>
+<div class="prose">
+<p style="margin-top:16px">No privileged information reaches the policy: object and target positions exist in the simulator
+and in the demonstration files, but only the image, the joint positions and the instruction are passed on. Success is read from the
+simulator only to score test episodes, which use scenes never seen in training.</p>
+<table class="setup" style="margin-top:8px">
+  <thead><tr><th>Task</th><th>Skill</th><th>Instruction</th><th>Demos</th><th>Updates</th></tr></thead>
+  <tbody>
+    <tr><td>1</td><td>PushCube</td><td><q>Push the cube onto the target.</q></td><td>200</td><td>8000, then 2000<sup>*</sup></td></tr>
+    <tr><td>2</td><td>StackCube</td><td><q>Stack the red cube on the green cube.</q></td><td>900</td><td>12000, then 24000<sup>&dagger;</sup></td></tr>
+    <tr><td>3</td><td>StackCube, reversed</td><td><q>Stack the green cube on the red cube.</q></td><td>900</td><td>12000</td></tr>
+  </tbody>
+</table>
+<p style="font-size:0.88rem;color:var(--fg2);margin-top:8px"><sup>*</sup> Consolidation for consolidate-and-gate, retraining after pruning for PackNet;
+fine-tuning, EWC and replay continue with 500 ordinary updates. <sup>&dagger;</sup> Consolidation (PackNet: retraining after pruning) before task 3.
+Fine-tuning and replay are also run with matching extra stacking updates (+6000, +24000). The last task is not consolidated because no task follows.
+Batch 32, AdamW, learning rate 1e-4 with warmup and cosine decay. Every result is the success rate over {{n_test}} test scenes per task,
+as mean &plusmn; standard deviation over {{n_seeds}} training seeds, at any step of the episode unless stated.</p>
+</div>
+</section>
+
+<section id="method">
+<div class="prose">
+<h2>Method: consolidate, gate, freeze</h2>
+<p>The action expert's computation is split into 752 unit groups: in each of its 16 layers, 15 attention heads and 32 blocks of
+64 MLP units. Every task goes through the same cycle; after it is learned and before the next task starts:</p>
+</div>
+<figure class="chart">{{method_svg}}</figure>
+<div class="prose">
+<p><b>1. Consolidate.</b> A new core is chosen at random among the unit groups that no earlier task has reserved (5% of all groups, 38 of 752).
+The task is trained a little longer with every other group silenced except the earlier, frozen cores, so the skill is re-expressed
+in its own core plus the earlier ones: 2000 updates for pushing, which recovers from {{cons_start}}% to {{cons_end}}% with only its core active, and
+24000 for stacking.</p>
+<p><b>A quarter of the network per task.</b> Larger cores leave room for fewer tasks. At 25% per task the best configuration takes, in every
+layer, whole key/value bundles (a key/value head with the three query heads that share it, one bundle of five) and a quarter of the MLP blocks,
+so later tasks keep key/value heads of their own, and gives the third task a low-rank attention branch keyed by its instruction (rank 16,
+1.3% of the action expert; without it {{nobranch_avg}}%). It averages {{q_gate_avg}}% over the three tasks (<a href="#packnet">against PackNet</a>).</p>
+<p><b>2. Gate by instruction.</b> From then on, task <i>k</i>'s instruction runs cores 1&hellip;<i>k</i> and switches every other group off.
+The instruction is a normal policy input, so the gate uses no extra information.</p>
+<p><b>3. Freeze.</b> While later tasks are learned, every weight on these gated paths is frozen. A new task uses the whole network,
+including the frozen cores, but only the groups no task has reserved can change.</p>
+<p class="callout">Because the earlier task's gated computation only touches frozen weights, its behaviour is preserved by construction
+&mdash; the frozen weights change by exactly zero. The experiments therefore ask what this costs: how well new tasks are learned, and how
+much capacity each task consumes.</p>
+<p>The idea follows context-dependent gating with synaptic stabilisation in the brain and in networks
+(<a href="https://doi.org/10.1073/pnas.1803839115">Masse, Grant &amp; Freedman, 2018</a>); in machine-learning terms it is close to
+PackNet and HAT, applied to whole heads and MLP blocks and keyed by the language instruction.</p>
+</div>
+</section>
+
+<section id="results">
+<div class="prose"><h2>Results</h2>
+<p>We compare consolidate-and-gate with fine-tuning, EWC and experience replay (ER) storing 50 or 500 examples of each earlier task{{packnet_clause}},
+plus two references that are not continual learners: joint training on all data at once, and separate checkpoints chosen by instruction.
+All methods start each stage from policies with the same number of updates on earlier tasks. Every number is the success rate on
+{{n_test}} test scenes per task, mean over {{n_seeds}} training seeds. After three tasks each method is reported at the configuration with its
+best average on these test scenes, the same rule for every method; all configurations are listed below. Consolidate-and-gate and PackNet
+reserve part of the network for each task and are compared at 5% per task, which leaves room for twenty tasks; a quarter per task, room for
+four, is compared <a href="#packnet">below</a>.</p></div>
+<figure class="chart narrow">{{sequence_svg}}
+<figcaption>Average success over the tasks learned so far, after each stage (error bars: SD over seeds); after the third task each method at its
+selected configuration (table below). EWC was run for two tasks only{{er500_three_note}}.
+Joint training sees all data at once and marks what a single policy reaches without continual learning.</figcaption></figure>
+<figure class="chart">{{cost_svg}}
+<figcaption>Average success against the memory each method keeps for earlier tasks: stored examples (ER), Fisher information and a copy of the
+old weights (EWC), a second model (separate checkpoints), all data (joint training){{packnet_cost}}, or one bit per unit group and task (consolidate-and-gate).
+After three tasks each method is at its selected configuration; for the gate, PackNet, fine-tuning and ER-500 it includes 24000 extra stacking
+updates, so their training compute matches.</figcaption></figure>
+
+<div class="prose"><h3 id="three">After all three tasks</h3>
+<p>The third task asks for the reverse of the second in identical scenes, so the two stacking skills directly conflict and only the
+instruction tells them apart. Before it, the stacking skill is consolidated into a second core chosen outside the pushing core; the
+gated policy's third stage may then change only the 90% of the network neither earlier task uses. Replay stores examples of each
+earlier task.</p></div>
+<figure class="chart narrow">{{three_svg}}
+<figcaption>Success after learning all three tasks ({{n_test}} test scenes per task, mean of {{seeds_three}}; dots: seeds). Hatched: episodes that built the
+<i>other</i> stack instead. Fine-tuning has not forgotten how to stack; it ignores the instruction and builds the newest stack.</figcaption></figure>
+<div class="tablewrap">{{main_three_table}}</div>
+<div class="prose"><p>Every configuration that was run, with the selected ones highlighted for the gate. Red on green before task 3 is shown
+where it was scored on the test scenes; the gated policy's earlier tasks are frozen, so they do not change during task 3.</p></div>
+<div class="tablewrap">{{three_table}}</div>
+
+<h4>Rollouts after the last task</h4>
+<figure><div class="videos three">{{c_videos}}</div>
+<figcaption>{{video_caption}} Consolidate-and-gate: {{video_config}}.</figcaption></figure>
+
+<div class="prose"><h3 id="packnet">Against PackNet</h3>
+<p>PackNet keeps a fixed share of every weight matrix per task, chosen by weight magnitude after the task is learned; the gate keeps whole
+heads and MLP blocks. At 5% per task the gate is {{gate_gap}} points ahead after three tasks ({{three_gate_avg}}% vs {{three_packnet_avg}}%;
+seeds 0 / 1 / 2: {{gate_gap_seeds}}), on pushing ({{three_gate_push}}% vs {{three_packnet_push}}%) and the newest task ({{three_gate_gor}}% vs
+{{three_packnet_gor}}%); red on green is level ({{three_gate_rog}}% vs {{three_packnet_rog}}%). At a quarter of the network per task, room for
+only four tasks, PackNet is {{q_gap}} points ahead ({{q_packnet_avg}}% vs {{q_gate_avg}}%), on red on green ({{q_packnet_rog}}% vs {{q_gate_rog}}%).
+The two ways of reserving capacity differ in three respects.</p>
+<p><b>Small budgets.</b> The smaller each task's share, the further PackNet falls behind. At 5% the gate keeps pushing at {{k5_gate_push}}% after
+consolidation; PackNet given the same 2000 retraining updates and the same state/action/time projections kept whole keeps {{k5_packnet_push}}%,
+and pruning those small projections too drops it to {{k5_packnet_pruned}}%.</p></div>
+{{budget_table}}
+<div class="prose">
+<p><b>Each skill is a separable network.</b> A core is made of whole heads and MLP blocks, so a task's gated computation can be cut out
+as a narrower dense action expert. With attention-aware cores (a quarter per task; the random 5% cores mix query heads of different key/value
+heads, which the cut-out code does not handle yet), pushing uses {{push_weights}}% of the action expert's weights, red on green {{stack_weights}}%. The cut-out
+networks reproduce the gated policy's actions (identical up to fp32 rounding) and, in closed loop under bf16, end most test episodes the same
+way; PackNet's per-weight masks leave every matrix at full size. The narrower
+networks are faster only where arithmetic dominates: on the GPU the 10 denoising steps are limited by kernel launches below batch 64.</p></div>
+{{sliced_table}}
+<div class="prose">
+<p><b>Task records.</b> The gate records which unit groups each task uses, {{core_json_kb}} kB as stored here (one bit per unit group and task,
+94 bytes, would do). PackNet records an owner for every weight: a {{packnet_map_mb}} MB map as stored here, one byte per weight (one bit per
+weight and task is 12.5 MB).</p></div>
+</section>
+
+<section id="why">
+<div class="prose"><h2>Why it works</h2>
+<p>The analyses in this section were run on the two-task study's 25% random cores.</p>
+<h3>Fine-tuning forgets within the first 2000 updates</h3>
+<p>Success on the earlier and the new task while the second task is learned:</p></div>
+<figure class="chart">{{curves_svg}}
+<figcaption>Success during the second stage on validation scenes (20 per point, mean of {{n_seeds}} seeds). Pushing collapses for fine-tuning and EWC
+before the first check and declines gradually under replay; the gated policy's pushing does not move.</figcaption></figure>
+<div class="prose">
+<h3>Both freezing and gating are needed</h3>
+<p>Pushing success after stage B, with the gate on or off when pushing is tested, for policies trained with or without freezing the core during stage B:</p></div>
+{{freeze_table}}
+<div class="prose" style="margin-top:14px"><p>Without freezing, stage B rewrites the core; without the gate, the units trained for stacking interfere. Either one alone keeps nothing.</p>
+
+<h3>Which units form the core matters little</h3>
+<p>A core chosen by intervention (the groups whose silencing hurts pushing most) can carry pushing on its own before any consolidation
+(seeds 0/1/2: {{abl_start}}% vs {{rand_start}}% for a random core of the same size), but after 500 consolidation updates both reach
+{{cons_range}}%, and through stage B a random core does as well: {{abl_avg}}% vs {{rand_avg}}% two-task average.</p>
+</div>
+{{core_tables}}
+<div class="prose">
+<h3>How much of the network each task reserves</h3>
+<p>Core size is the gate's capacity setting. Its memory stays the same (one bit per unit group and task), but a larger core keeps more
+of each old skill's computation and leaves fewer free units for the next task. {{size_text}}</p></div>
+{{size_table}}
+<div class="prose">
+<h3>When the tasks exceed the capacity</h3>
+<p>Both methods reserve a fixed share of the network per task, so a fixed network holds a fixed number of tasks. Here each method
+gives the first two tasks half of the network each, so the third task finds nothing free: it cannot be learned unless the earlier
+tasks give up part of their share, which they then lose. Neither method can add tasks beyond its capacity without that trade. {{full_text}}</p></div>
+{{full_section}}
+<div class="prose">
+<h3>The gated policy keeps the stacks it builds</h3>
+<p>Fine-tuning reaches a stack more often, yet the gated policy ends more episodes with the cubes stacked. Per-step traces show that every
+method often undoes a finished stack &mdash; in {{regrasp_share}}% of these cases by grasping the top cube again and lifting it off, since the
+demonstrations end at success and never show what to do afterwards &mdash; and that the gated policy undoes its stacks less often.</p></div>
+<figure class="chart narrow">{{kept_svg}}
+<figcaption>Share of test episodes with the red cube resting on the green cube at each moment (mean of {{n_seeds}} seeds). Kept = stacked at the end, among episodes that stacked at some point:
+{{kept_text}}.</figcaption></figure>
+{{exec_section}}
+</section>
+
+<section id="limits">
+<div class="prose"><h2>Limitations</h2>
+<ul>
+<li><b>Plasticity cost.</b> Frozen units make a new task harder to learn in the two-task study: stacking {{gate_stack}}% vs {{seqft_stack}}% for fine-tuning.
+The reversed stack, learned third, reaches {{three_gate_gor}}% vs {{three_seqft_gor}}%.</li>
+<li><b>PackNet is ahead at a quarter of the network per task</b> ({{q_packnet_avg}}% vs {{q_gate_avg}}% after three tasks), because the gated policy keeps red on green less well ({{q_gate_rog}}% vs {{q_packnet_rog}}%).</li>
+<li><b>Capacity.</b> Each task's core takes a fixed share of the unit groups, so a fixed network admits a fixed number of tasks; smaller cores admit
+more but keep less (three-task average {{q_gate_avg}}% with 25% cores, {{three_gate_avg}}% with 5%). Sequences longer than three tasks were not tested.</li>
+<li><b>Selection on the test scenes.</b> Configurations were chosen on the same test scenes they are reported on, by the same rule for every method; a separate validation split would give unbiased estimates.</li>
+<li><b>Task identity comes from the instruction string.</b> An instruction worded differently would not be routed to its core.</li>
+<li><b>Consolidating a later task is not free.</b> Re-expressing stacking in its core kept success at any step but lowered success at the final step (e.g. 21% &rarr; 12% on seed 0).</li>
+<li><b>Scope.</b> Simulation only, one fixed camera, demonstrations from a motion planner that sees object poses, {{n_seeds}} training seeds.</li>
+</ul></div>
+</section>
+
+<section id="reproduce">
+<div class="prose"><h2>Reproduce</h2>
+<p>Everything runs from the repository on one GPU (an RTX 5090 trains two runs at once; the two-task study takes about 11 hours).
+Every reported run is one line in <a href="{{repo_url}}/tree/main/experiments">experiments/</a>.</p>
+<pre>git clone {{repo_url}}.git && cd {{repo_name}}
+export CVLA_ROOT=/path/to/large/disk
+bash scripts/setup_env.sh && source scripts/env.sh
+python scripts/download_assets.py && python scripts/replay_demos.py
+MAX=2 bash experiments/run_jobs.sh experiments/01_main_study.jobs
+python scripts/export_results.py --root $CVLA_RUNS/final --out results.json</pre>
+
+<h2 style="margin-top:56px">References</h2>
+<ol class="refs">
+<li>M. Shukor et al. SmolVLA: A vision-language-action model for affordable and efficient robotics. arXiv:2506.01844, 2025.</li>
+<li>S. Tao et al. ManiSkill3: GPU parallelized robotics simulation and rendering for generalizable embodied AI. RSS, 2025.</li>
+<li>N. Y. Masse, G. D. Grant, D. J. Freedman. Alleviating catastrophic forgetting using context-dependent gating and synaptic stabilization. PNAS, 2018.</li>
+<li>J. Kirkpatrick et al. Overcoming catastrophic forgetting in neural networks. PNAS, 2017.</li>
+<li>D. Rolnick et al. Experience replay for continual learning. NeurIPS, 2019.</li>
+<li>A. Mallya, S. Lazebnik. PackNet: Adding multiple tasks to a single network by iterative pruning. CVPR, 2018.</li>
+<li>J. Serr&agrave; et al. Overcoming catastrophic forgetting with hard attention to the task. ICML, 2018.</li>
+</ol></div>
+</section>
+
+<footer>{{footer}}</footer>
+</main>
+</body>
+</html>

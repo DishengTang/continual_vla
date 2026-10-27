@@ -1,0 +1,13 @@
+# One job per line:  <name>|<prerequisite (path that must exist) or ->|<arguments for python>
+# Run from the repository root:  source scripts/env.sh && bash experiments/run_jobs.sh experiments/14_rollout_videos.jobs
+
+# Rollout videos on the project page: every test episode of seed 0 recorded for the two-task and three-task stages
+# shown (fine-tuning, ER-50, consolidate-and-gate with 25% and 5% cores).
+
+s0_B_er50_eval_test_videos|$CVLA_RUNS/final/s0/B_er50/stage.json|scripts/evaluate.py --stage $CVLA_RUNS/final/s0/B_er50 --tasks PushCube-v1 StackCube-v1 --split test --episodes 100 --save-traces --video-all --tag test_videos
+s0_B_gate_rand_eval_test_videos|$CVLA_RUNS/final/s0/B_gate_rand/stage.json|scripts/evaluate.py --stage $CVLA_RUNS/final/s0/B_gate_rand --tasks PushCube-v1 StackCube-v1 --split test --episodes 100 --save-traces --video-all --tag test_videos
+s0_B_seqft_eval_test_videos|$CVLA_RUNS/final/s0/B_seqft/stage.json|scripts/evaluate.py --stage $CVLA_RUNS/final/s0/B_seqft --tasks PushCube-v1 StackCube-v1 --split test --episodes 100 --save-traces --video-all --tag test_videos
+s0_C_er50_eval_test_videos|$CVLA_RUNS/final/s0/C_er50/stage.json|scripts/evaluate.py --stage $CVLA_RUNS/final/s0/C_er50 --tasks PushCube-v1 StackCube-v1 StackCubeGreenOnRed-v1 --split test --episodes 100 --save-traces --video-all --tag test_videos
+s0_C_gate_rand_eval_test_videos|$CVLA_RUNS/final/s0/C_gate_rand/stage.json|scripts/evaluate.py --stage $CVLA_RUNS/final/s0/C_gate_rand --tasks PushCube-v1 StackCube-v1 StackCubeGreenOnRed-v1 --split test --episodes 100 --save-traces --video-all --tag test_videos
+s0_C_gate_rand_k5_c2000_eval_test_videos|$CVLA_RUNS/final/s0/C_gate_rand_k5_c2000/stage.json|scripts/evaluate.py --stage $CVLA_RUNS/final/s0/C_gate_rand_k5_c2000 --split test --episodes 100 --video-all --tag test_videos
+s0_C_seqft_eval_test_videos|$CVLA_RUNS/final/s0/C_seqft/stage.json|scripts/evaluate.py --stage $CVLA_RUNS/final/s0/C_seqft --tasks PushCube-v1 StackCube-v1 StackCubeGreenOnRed-v1 --split test --episodes 100 --save-traces --video-all --tag test_videos

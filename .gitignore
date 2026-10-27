@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.ipynb_checkpoints/
+
+# Large artifacts: kept under $CVLA_ROOT, never in the repository
+data/
+runs/
+checkpoints/
+wandb/
+outputs/
+*.h5
+*.hdf5
+*.pt
+*.pth
+*.safetensors
+*.mp4
+
+# Machine-specific job orchestration and local notes
+local/
+
+# Editors and OS
+.vscode/
+.idea/
+.DS_Store

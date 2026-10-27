@@ -1,0 +1,12 @@
+[build-system]
+requires = ["setuptools>=71"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "continual_vla"
+version = "0.1.0"
+description = "Continual visuomotor learning in ManiSkill with SmolVLA: replay and selective consolidation"
+requires-python = ">=3.12"
+
+[tool.setuptools.packages.find]
+where = ["src"]
