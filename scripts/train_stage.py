@@ -116,6 +116,13 @@ def parse_args(argv=None):
     p.add_argument("--log-every", type=int, default=50)
     p.add_argument("--eval-every", type=int, default=2000)
     p.add_argument("--eval-episodes", type=int, default=20)
+    p.add_argument("--eval-steps", nargs="+", type=int, default=[],
+                   help="further updates at which to evaluate like --eval-every (0: before the first update)")
+    p.add_argument("--eval-old-steps", nargs="+", type=int, default=[],
+                   help="updates at which to evaluate only the earlier tasks (forgetting at a finer step)")
+    p.add_argument("--stop-after", type=int, default=0,
+                   help="end the stage after this many updates and their evaluation, with the learning-rate schedule "
+                        "of --steps; only the evaluations and stage.json are written (learning curves)")
     p.add_argument("--final-episodes", type=int, default=50)
     p.add_argument("--final-split", choices=list(SPLIT_SEEDS), default="val")
     p.add_argument("--final-tasks", nargs="+", default=list(SEQUENCE))
@@ -511,6 +518,8 @@ def main():
             open(path, "w").close()
     if args.eval_init and first == 1:
         run_eval(0, args.final_tasks, args.final_episodes, split=args.final_split, required=True)
+    if 0 in args.eval_steps and first == 1:
+        run_eval(0, seen, args.eval_episodes)
 
     policy.train()
     torch.cuda.reset_peak_memory_stats()
@@ -556,8 +565,14 @@ def main():
             log.flush()
             if step % (args.log_every * 10) == 0:
                 print(json.dumps(rec), flush=True)
-        if step % args.eval_every == 0 and step < args.steps:
+        if (step % args.eval_every == 0 or step in args.eval_steps) and step < args.steps:
             run_eval(step, seen, args.eval_episodes)
+        elif step in args.eval_old_steps and step < args.steps:
+            run_eval(step, [t for t in seen if t != args.task], args.eval_episodes)
+        if step == args.stop_after:
+            with open(os.path.join(args.out, "stage.json"), "w") as f:
+                json.dump({"tasks": seen, "stopped_after": step, "train_seconds": time.time() - t_start}, f)
+            return
         if args.ckpt_every and step % args.ckpt_every == 0 and step < args.steps:
             if packnet is not None:
                 packnet.restore()
