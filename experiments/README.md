@@ -29,11 +29,12 @@ scores a stage; its output goes to `$CVLA_RUNS/final/s<seed>/<stage>/`.
 | [09_extra_updates.jobs](09_extra_updates.jobs) | Fine-tuning and replay with +6000 or +24000 StackCube updates before task 3 | 36 | about 19 h |
 | [10_packnet_budgets.jobs](10_packnet_budgets.jobs) | PackNet with 24000 StackCube retraining updates (25%); task 3 unfrozen; 10% and 5% with 500 updates; **5% and 2.5% matched to the gate** and its two-task scores | 58 | about 27 h |
 | [11_over_capacity.jobs](11_over_capacity.jobs) | Beyond capacity: two 50% shares, then task 3, with nothing or half of each earlier share released, for the gate and PackNet | 30 | about 9 h |
-| [12_ten_percent.jobs](12_ten_percent.jobs) | 10% per task for both methods with the 5% recipe; 10% cores with 24000 StackCube consolidation updates (not on the project page yet) | 33 | about 23 h |
+| [12_ten_percent.jobs](12_ten_percent.jobs) | 10% per task for both methods with the 5% recipe; 10% cores with 24000 StackCube consolidation updates | 33 | about 23 h |
 | [13_joint_three_task.jobs](13_joint_three_task.jobs) | Joint training on all three tasks at once (reference) | 3 | about 4 h |
 | [14_rollout_videos.jobs](14_rollout_videos.jobs) | Every test episode of seed 0 recorded, for the rollout videos on the project page | 7 | about 1 h |
+| [15_five_percent_analyses.jobs](15_five_percent_analyses.jobs) | The analyses of the reported 5% configuration: the core not frozen, a core selected by intervention, per-step traces, the stage-B learning curve and its first 2000 updates scored densely for every method, executed actions per chunk | 35 | about 12 h |
 
-Files 02-14 start from checkpoints written by 01 (task 1, its importance scores and the replay buffers) and some
+Files 02-15 start from checkpoints written by 01 (task 1, its importance scores and the replay buffers) and some
 from each other: run them in this order. 03 and later need the green-on-red demonstrations below. Every line was
 checked against the run it reproduces: parsed by the current `train_stage.py`, it gives back the arguments recorded
 in that run's `config.json`.
@@ -69,7 +70,7 @@ MAX=2 bash experiments/run_jobs.sh experiments/02_ablations.jobs
 MAX=2 bash experiments/run_jobs.sh experiments/03_three_task.jobs
 MAX=2 bash experiments/run_jobs.sh experiments/04_exec_steps.jobs
 MAX=2 bash experiments/run_jobs.sh experiments/05_core_size.jobs
-# ... and so on through 14_rollout_videos.jobs, in order
+# ... and so on through 15_five_percent_analyses.jobs, in order
 ```
 
 Outputs go to `$CVLA_RUNS/final/s<seed>/<stage>/` (prototype checks to `$CVLA_RUNS/proto/`), logs to

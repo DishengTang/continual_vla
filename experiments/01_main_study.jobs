@@ -52,12 +52,12 @@ s2_curve_A_core_rand_c200|$CVLA_RUNS/final/s2/A/ablation_scores.json|scripts/tra
 s2_curve_A_core_abl_c200|$CVLA_RUNS/final/s2/A/ablation_scores.json|scripts/train_stage.py --task PushCube-v1 --init $CVLA_RUNS/final/s2/A --core-from $CVLA_RUNS/final/s2/A --core-selection ablation --seed 2 --steps 200 --warmup 20 --eval-every 100000 --final-tasks PushCube-v1 --final-split test --final-episodes 100 --fisher-samples 10 --memory-size 1 --n-video 0 --out $CVLA_RUNS/final/s2/curve/A_core_abl_c200
 
 # Gate switched off at evaluation (after consolidation and after StackCube)
-s0_A_core_rand_eval_test_nogate_push_test_100|$CVLA_RUNS/final/s0/A_core_rand/stage.json|scripts/evaluate.py --stage $CVLA_RUNS/final/s0/A_core_rand --tasks PushCube-v1 --split test --episodes 100 --no-gate
-s0_B_gate_rand_eval_test_nogate_push_test_100|$CVLA_RUNS/final/s0/B_gate_rand/stage.json|scripts/evaluate.py --stage $CVLA_RUNS/final/s0/B_gate_rand --tasks PushCube-v1 --split test --episodes 100 --no-gate
-s1_A_core_rand_eval_test_nogate_push_test_100|$CVLA_RUNS/final/s1/A_core_rand/stage.json|scripts/evaluate.py --stage $CVLA_RUNS/final/s1/A_core_rand --tasks PushCube-v1 --split test --episodes 100 --no-gate
-s1_B_gate_rand_eval_test_nogate_push_test_100|$CVLA_RUNS/final/s1/B_gate_rand/stage.json|scripts/evaluate.py --stage $CVLA_RUNS/final/s1/B_gate_rand --tasks PushCube-v1 --split test --episodes 100 --no-gate
-s2_A_core_rand_eval_test_nogate_push_test_100|$CVLA_RUNS/final/s2/A_core_rand/stage.json|scripts/evaluate.py --stage $CVLA_RUNS/final/s2/A_core_rand --tasks PushCube-v1 --split test --episodes 100 --no-gate
-s2_B_gate_rand_eval_test_nogate_push_test_100|$CVLA_RUNS/final/s2/B_gate_rand/stage.json|scripts/evaluate.py --stage $CVLA_RUNS/final/s2/B_gate_rand --tasks PushCube-v1 --split test --episodes 100 --no-gate
+s0_A_core_rand_eval_test_nogate_push|$CVLA_RUNS/final/s0/A_core_rand/stage.json|scripts/evaluate.py --stage $CVLA_RUNS/final/s0/A_core_rand --tasks PushCube-v1 --split test --episodes 100 --no-gate
+s0_B_gate_rand_eval_test_nogate_push|$CVLA_RUNS/final/s0/B_gate_rand/stage.json|scripts/evaluate.py --stage $CVLA_RUNS/final/s0/B_gate_rand --tasks PushCube-v1 --split test --episodes 100 --no-gate
+s1_A_core_rand_eval_test_nogate_push|$CVLA_RUNS/final/s1/A_core_rand/stage.json|scripts/evaluate.py --stage $CVLA_RUNS/final/s1/A_core_rand --tasks PushCube-v1 --split test --episodes 100 --no-gate
+s1_B_gate_rand_eval_test_nogate_push|$CVLA_RUNS/final/s1/B_gate_rand/stage.json|scripts/evaluate.py --stage $CVLA_RUNS/final/s1/B_gate_rand --tasks PushCube-v1 --split test --episodes 100 --no-gate
+s2_A_core_rand_eval_test_nogate_push|$CVLA_RUNS/final/s2/A_core_rand/stage.json|scripts/evaluate.py --stage $CVLA_RUNS/final/s2/A_core_rand --tasks PushCube-v1 --split test --episodes 100 --no-gate
+s2_B_gate_rand_eval_test_nogate_push|$CVLA_RUNS/final/s2/B_gate_rand/stage.json|scripts/evaluate.py --stage $CVLA_RUNS/final/s2/B_gate_rand --tasks PushCube-v1 --split test --episodes 100 --no-gate
 
 # Reference: StackCube trained alone from the pretrained policy
 s0_ref_stack_only|-|scripts/train_stage.py --task StackCube-v1 --n-train 900 --steps 12000 --eval-every 2000 --seed 0 --final-tasks StackCube-v1 --final-split test --final-episodes 100 --out $CVLA_RUNS/final/s0/ref_stack_only
