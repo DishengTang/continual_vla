@@ -49,6 +49,7 @@ figure.center figcaption { margin-left: auto; margin-right: auto; }
 .videos { display: grid; gap: 14px; }
 .videos.two { grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: 640px; margin: 0 auto; }
 .videos.three { grid-template-columns: repeat(3, minmax(0, 1fr)); max-width: 860px; margin: 0 auto; }
+.videos.four { grid-template-columns: repeat(4, minmax(0, 1fr)); max-width: 1000px; margin: 0 auto; }
 .clip { position: relative; background: var(--card); border-radius: 10px; overflow: hidden; }
 .clip video { display: block; width: 100%; height: auto; aspect-ratio: 1 / 1; }
 .clip .label { display: flex; justify-content: space-between; align-items: center; gap: 8px;
@@ -102,6 +103,7 @@ nav.toc { display: flex; gap: 18px; justify-content: center; flex-wrap: wrap; fo
 nav.toc a { color: var(--fg2); }
 @media (max-width: 760px) {
   .cols, .videos.three, .sequence { grid-template-columns: minmax(0, 1fr); }
+  .videos.four { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .sequence .then b { transform: rotate(90deg); }
   .frames { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .io { grid-template-columns: 1fr; }
@@ -127,7 +129,7 @@ nav.toc a { color: var(--fg2); }
     <a class="btn ghost" href="#results">Results</a>
   </div>
   <nav class="toc"><a href="#setup">Setup</a><a href="#method">Method</a><a href="#results">Results</a>
-  <a href="#three">After all three tasks</a><a href="#packnet">Against PackNet</a><a href="#why">Why it works</a><a href="#limits">Limitations</a><a href="#reproduce">Reproduce</a></nav>
+  <a href="#three">After all three tasks</a><a href="#budget">Allocation</a><a href="#packnet">Against PackNet</a><a href="#why">Why it works</a><a href="#next">Next steps</a><a href="#limits">Limitations</a><a href="#reproduce">Reproduce</a></nav>
 </header>
 
 <figure class="center teaser">
@@ -141,6 +143,9 @@ nav.toc a { color: var(--fg2); }
 <div class="tldr">
   <div class="eyebrow">Summary</div>
   <ul>
+    <li><b>Brain-inspired, instruction-dependent consolidation preserves manipulation skills during sequential learning.</b> Under the
+    small allocations explored here it gives a better trade-off between performance and task bookkeeping than PackNet; PackNet
+    remains stronger at larger allocations.</li>
     <li>A SmolVLA policy, seeing only a camera image, its joint angles and an instruction, learns <b>PushCube</b> and then
     <b>StackCube</b> in simulation. Plain fine-tuning keeps <span class="num">{{seqft_push}}</span>% of pushing; experience replay of 50 stored examples keeps <span class="num">{{er50_push}}</span>%.</li>
     <li><b>Consolidate-and-gate, with 5% of the network per task, keeps pushing at <span class="num">{{gate_push}}</span>%</b> (it was
@@ -152,10 +157,10 @@ nav.toc a { color: var(--fg2); }
     {{three_packnet_avg}}%, replay of 500 examples {{three_er500_avg}}%, of 50 examples {{three_er50_avg}}%, fine-tuning {{three_seqft_avg}}%. It still stacks
     red on green when asked <span class="num">{{three_gate_rog}}</span>% of the time (fine-tuning {{three_seqft_rog}}%, building the wrong stack
     <span class="num">{{three_seqft_wrong}}</span>% of the time; replay {{three_er50_rog}}&ndash;{{three_er500_rog}}%).</li>
-    <li><b>PackNet</b> reserves a share of every weight matrix per task instead of whole units. At 5% per task, room for twenty tasks, the gate
+    <li><b>PackNet</b> reserves a share of every weight matrix per task instead of whole units. At a nominal 5% per task the gate
     keeps pushing at <span class="num">{{k5_gate_push}}</span>% against {{k5_packnet_push}}% and leads by {{gate_gap}} points after three tasks
-    (seeds 0 / 1 / 2: {{gate_gap_seeds}}); at a quarter per task, room for four, PackNet leads ({{q_packnet_avg}}% vs {{q_gate_avg}}%). The gate's
-    task records take {{core_json_kb}} kB instead of a {{packnet_map_mb}} MB per-weight map (<a href="#packnet">details</a>).</li>
+    (seeds 0 / 1 / 2: {{gate_gap_seeds}}). Across allocations ({{budget_summary}}) the gate degrades more slowly as each task's share
+    shrinks (<a href="#budget">chart</a>). Its task records take {{core_json_kb}} kB instead of a {{packnet_map_mb}} MB per-weight map.</li>
     <li>The price is plasticity: frozen units make new skills harder to learn (stacking {{gate_stack}}% vs {{seqft_stack}}% for fine-tuning in the two-task study).</li>
   </ul>
 </div>
@@ -212,10 +217,8 @@ as mean &plusmn; standard deviation over {{n_seeds}} training seeds, at any step
 The task is trained a little longer with every other group silenced except the earlier, frozen cores, so the skill is re-expressed
 in its own core plus the earlier ones: 2000 updates for pushing, which recovers from {{cons_start}}% to {{cons_end}}% with only its core active, and
 24000 for stacking.</p>
-<p><b>A quarter of the network per task.</b> Larger cores leave room for fewer tasks. At 25% per task the best configuration takes, in every
-layer, whole key/value bundles (a key/value head with the three query heads that share it, one bundle of five) and a quarter of the MLP blocks,
-so later tasks keep key/value heads of their own, and gives the third task a low-rank attention branch keyed by its instruction (rank 16,
-1.3% of the action expert; without it {{nobranch_avg}}%). It averages {{q_gate_avg}}% over the three tasks (<a href="#packnet">against PackNet</a>).</p>
+<p><b>Share per task.</b> Larger cores keep more of each skill but leave fewer free units for later tasks. The results use 5%
+per task; other shares, from 1% to 25%, are compared with PackNet <a href="#budget">below</a>.</p>
 <p><b>2. Gate by instruction.</b> From then on, task <i>k</i>'s instruction runs cores 1&hellip;<i>k</i> and switches every other group off.
 The instruction is a normal policy input, so the gate uses no extra information.</p>
 <p><b>3. Freeze.</b> While later tasks are learned, every weight on these gated paths is frozen. A new task uses the whole network,
@@ -226,7 +229,31 @@ much capacity each task consumes.</p>
 <p>The idea follows context-dependent gating with synaptic stabilisation in the brain and in networks
 (<a href="https://doi.org/10.1073/pnas.1803839115">Masse, Grant &amp; Freedman, 2018</a>); in machine-learning terms it is close to
 PackNet and HAT, applied to whole heads and MLP blocks and keyed by the language instruction.</p>
+<h3 id="layer">Inside one layer</h3>
+<p>The action expert is a stack of 16 standard Transformer decoder layers; the weight names are those of the code, which SmolVLA
+inherits from its language model. A query head reaches the residual stream only through its own 64 columns of <code>o_proj</code>,
+and each block of 64 MLP neurons only through its own 64 columns of <code>down_proj</code>, so switching off a unit's 64 values
+removes exactly its contribution. The gate does this with hooks on the inputs of these two matrices. Key/value heads are shared by
+three query heads each, so they cannot be switched off alone; they are frozen with the core heads that read them.</p>
 </div>
+<figure class="chart">{{layer_svg}}
+<figcaption>One layer of the action expert, read from the bottom as in the original Transformer; shapes are [output &times; input].
+Squares: the 15 attention heads, 5 key/value heads and 32 MLP blocks of layer 7, coloured by the cores that hold them after two
+tasks (seed 0, 5% cores). The pushing instruction runs the blue units, red on green the blue and purple ones, and the last task
+all of them.</figcaption></figure>
+<div class="prose">
+<h3 id="vs-packnet">The same 5% under PackNet</h3>
+<p>PackNet also reserves a share of the network for each task and uses the task's identity to choose what runs, but it reserves single
+weights: the 5% largest of every matrix. Under the pushing instruction our policy runs a few complete units of each layer and switches
+the rest off; PackNet runs every unit with about 5% of its weights. Both freeze a similar share after task 1 ({{p_gate_1}}% and
+{{p_packnet_1}}% of the action expert's weights), but what runs for each task takes 752 bits to describe for the gate and an owner
+for each of 99.9M weights for PackNet.</p>
+</div>
+<figure class="chart">{{packnet_svg}}
+<figcaption>The pushing task's share of layer 7 after task 1, seed 0, from the saved core and PackNet's saved weight owners
+(5% per task for both). Left in each panel: a corner of <code>q_proj</code>, one pixel per weight; its rows 0&ndash;255 belong
+to heads 0&ndash;3. Right: every head and MLP block of the layer. For PackNet the blue part of each square is the share of the
+unit's weights owned by task 1 (for a head, its <code>q_proj</code> rows and <code>o_proj</code> columns).</figcaption></figure>
 </section>
 
 <section id="results">
@@ -234,116 +261,99 @@ PackNet and HAT, applied to whole heads and MLP blocks and keyed by the language
 <p>We compare consolidate-and-gate with fine-tuning, EWC and experience replay (ER) storing 50 or 500 examples of each earlier task{{packnet_clause}},
 plus two references that are not continual learners: joint training on all data at once, and separate checkpoints chosen by instruction.
 All methods start each stage from policies with the same number of updates on earlier tasks. Every number is the success rate on
-{{n_test}} test scenes per task, mean over {{n_seeds}} training seeds. After three tasks each method is reported at the configuration with its
-best average on these test scenes, the same rule for every method; all configurations are listed below. Consolidate-and-gate and PackNet
-reserve part of the network for each task and are compared at 5% per task, which leaves room for twenty tasks; a quarter per task, room for
-four, is compared <a href="#packnet">below</a>.</p></div>
+{{n_test}} test scenes per task, mean over {{n_seeds}} training seeds. After three tasks each method is reported at its best configuration,
+the same rule for every method.</p>
+<p>Consolidate-and-gate and PackNet reserve part of the network for each task and are compared at a nominal 5% per task: the gate reserves
+5% of the unit groups (38 of 752), PackNet 5% of every weight matrix. Counted in weights, including the key/value weights that the gate's
+attention heads share and the small state/action/time projections that both methods give the first task, the first task freezes
+{{p_gate_1}}% of the action expert with the gate and {{p_packnet_1}}% with PackNet, the first two tasks {{p_gate_2}}% and {{p_packnet_2}}%
+(mean of {{n_seeds}} seeds). Other allocations are compared <a href="#budget">below</a>.</p></div>
+<div class="tablewrap">{{two_table}}</div>
+<p style="font-size:0.85rem;color:var(--fg2);margin-top:8px">PushCube, then StackCube: success on {{n_test}} test scenes per task, mean &plusmn; SD over {{n_seeds}} seeds. Pushing before
+stacking is scored at the end of the pushing stage (for the gate and PackNet, after consolidation or retraining).</p>
 <figure class="chart narrow">{{sequence_svg}}
 <figcaption>Average success over the tasks learned so far, after each stage (error bars: SD over seeds); after the third task each method at its
-selected configuration (table below). EWC was run for two tasks only{{er500_three_note}}.
-Joint training sees all data at once and marks what a single policy reaches without continual learning.</figcaption></figure>
+selected configuration (table below){{er500_three_note}}. Joint training is a reference, not a continual learner and not a matched upper bound:
+it sees all data at once for 20500 updates (two tasks) or 32500 (three tasks), the update count of the plain sequence; the gate's sequence,
+consolidation included, takes 22000 and 58000.</figcaption></figure>
 <figure class="chart">{{cost_svg}}
 <figcaption>Average success against the memory each method keeps for earlier tasks: stored examples (ER), Fisher information and a copy of the
-old weights (EWC), a second model (separate checkpoints), all data (joint training){{packnet_cost}}, or one bit per unit group and task (consolidate-and-gate).
+old weights (EWC), one model per earlier task (separate checkpoints: fine-tuning's checkpoint after each stage, chosen by instruction;
+after three tasks at fine-tuning's selected configuration), all data of the earlier tasks (joint training){{packnet_cost}}, or one bit per unit group and task (consolidate-and-gate).
 After three tasks each method is at its selected configuration; for the gate, PackNet, fine-tuning and ER-500 it includes 24000 extra stacking
-updates, so their training compute matches.</figcaption></figure>
+updates, so their training compute matches. Joint training (32500 updates) is not matched.</figcaption></figure>
 
 <div class="prose"><h3 id="three">After all three tasks</h3>
 <p>The third task asks for the reverse of the second in identical scenes, so the two stacking skills directly conflict and only the
 instruction tells them apart. Before it, the stacking skill is consolidated into a second core chosen outside the pushing core; the
-gated policy's third stage may then change only the 90% of the network neither earlier task uses. Replay stores examples of each
+gated policy's third stage may then change only the 90% of the unit groups that neither earlier task uses ({{free_c}}% of the
+action expert's weights). Replay stores examples of each
 earlier task.</p></div>
 <figure class="chart narrow">{{three_svg}}
 <figcaption>Success after learning all three tasks ({{n_test}} test scenes per task, mean of {{seeds_three}}; dots: seeds). Hatched: episodes that built the
 <i>other</i> stack instead. Fine-tuning has not forgotten how to stack; it ignores the instruction and builds the newest stack.</figcaption></figure>
 <div class="tablewrap">{{main_three_table}}</div>
-<div class="prose"><p>Every configuration that was run, with the selected ones highlighted for the gate. Red on green before task 3 is shown
-where it was scored on the test scenes; the gated policy's earlier tasks are frozen, so they do not change during task 3.</p></div>
-<div class="tablewrap">{{three_table}}</div>
+
+<div class="prose"><h3 id="budget">Performance against allocation</h3>
+<p>PackNet keeps a fixed share of every weight matrix per task, chosen by weight magnitude after the task is learned; the gate keeps whole
+heads and MLP blocks. Both were run at five allocations per task. Below 25% they share one recipe: 2000 consolidation (PackNet: retraining)
+updates for pushing, 24000 for stacking, and the state/action/time projections given whole to the first task. At 25% both use 500 updates
+for pushing and 24000 for stacking, and PackNet prunes the projections like every other matrix. {{budget_text}}</p></div>
+<figure class="chart">{{budget_svg}}
+<figcaption>Each method at the share of the network it reserves per task, nominal (test scenes, mean &plusmn; SD over seeds{{budget_hollow}}; dashed: joint training on all three tasks at once, a reference).
+Pushing is scored right after its own stage, which both methods then freeze. Below 25% consolidate-and-gate uses random
+cores; at 25%, attention-aware cores (whole key/value bundles).</figcaption></figure>
 
 <h4>Rollouts after the last task</h4>
-<figure><div class="videos three">{{c_videos}}</div>
-<figcaption>{{video_caption}} Consolidate-and-gate: {{video_config}}.</figcaption></figure>
+<figure><div class="videos {{video_cols}}">{{c_videos}}</div>
+<figcaption>{{video_caption}} Consolidate-and-gate: {{video_config}}{{video_packnet}}.</figcaption></figure>
 
-<div class="prose"><h3 id="packnet">Against PackNet</h3>
-<p>PackNet keeps a fixed share of every weight matrix per task, chosen by weight magnitude after the task is learned; the gate keeps whole
-heads and MLP blocks. At 5% per task the gate is {{gate_gap}} points ahead after three tasks ({{three_gate_avg}}% vs {{three_packnet_avg}}%;
+<div class="prose"><h3 id="packnet">Against PackNet at 5%</h3>
+<p>At 5% per task the gate is {{gate_gap}} points ahead after three tasks ({{three_gate_avg}}% vs {{three_packnet_avg}}%;
 seeds 0 / 1 / 2: {{gate_gap_seeds}}), on pushing ({{three_gate_push}}% vs {{three_packnet_push}}%) and the newest task ({{three_gate_gor}}% vs
-{{three_packnet_gor}}%); red on green is level ({{three_gate_rog}}% vs {{three_packnet_rog}}%). At a quarter of the network per task, room for
-only four tasks, PackNet is {{q_gap}} points ahead ({{q_packnet_avg}}% vs {{q_gate_avg}}%), on red on green ({{q_packnet_rog}}% vs {{q_gate_rog}}%).
-The two ways of reserving capacity differ in three respects.</p>
-<p><b>Small budgets.</b> The smaller each task's share, the further PackNet falls behind. At 5% the gate keeps pushing at {{k5_gate_push}}% after
-consolidation; PackNet given the same 2000 retraining updates and the same state/action/time projections kept whole keeps {{k5_packnet_push}}%,
-and pruning those small projections too drops it to {{k5_packnet_pruned}}%.</p></div>
-{{budget_table}}
-<div class="prose">
-<p><b>Each skill is a separable network.</b> A core is made of whole heads and MLP blocks, so a task's gated computation can be cut out
-as a narrower dense action expert. With attention-aware cores (a quarter per task; the random 5% cores mix query heads of different key/value
-heads, which the cut-out code does not handle yet), pushing uses {{push_weights}}% of the action expert's weights, red on green {{stack_weights}}%. The cut-out
-networks reproduce the gated policy's actions (identical up to fp32 rounding) and, in closed loop under bf16, end most test episodes the same
-way; PackNet's per-weight masks leave every matrix at full size. The narrower
-networks are faster only where arithmetic dominates: on the GPU the 10 denoising steps are limited by kernel launches below batch 64.</p></div>
-{{sliced_table}}
-<div class="prose">
-<p><b>Task records.</b> The gate records which unit groups each task uses, {{core_json_kb}} kB as stored here (one bit per unit group and task,
-94 bytes, would do). PackNet records an owner for every weight: a {{packnet_map_mb}} MB map as stored here, one byte per weight (one bit per
-weight and task is 12.5 MB).</p></div>
+{{three_packnet_gor}}%); red on green is level ({{three_gate_rog}}% vs {{three_packnet_rog}}%). Most of the gap is already there after the
+first task: the gate keeps pushing at {{k5_gate_push}}% after consolidation, PackNet at {{k5_packnet_push}}%, and pruning the small
+projections too drops PackNet to {{k5_packnet_pruned}}%. Both ran on the same GPU type for every stage and seed.</p>
+<p><b>Low task-bookkeeping overhead.</b> The gate records which unit groups each task uses, {{core_json_kb}} kB as stored here (one bit per
+unit group and task, 94 bytes, would do). PackNet records an owner for every weight: a {{packnet_map_mb}} MB map as stored here, one byte per
+weight (one bit per weight and task is 12.5 MB).</p></div>
 </section>
 
 <section id="why">
 <div class="prose"><h2>Why it works</h2>
-<p>The analyses in this section were run on the two-task study's 25% random cores.</p>
-<h3>Fine-tuning forgets within the first 2000 updates</h3>
+<p>The analyses in this section use the reported configuration, 5% random cores, in the two-task study (test scenes unless stated).</p>
+<h3>{{curves_heading}}</h3>
 <p>Success on the earlier and the new task while the second task is learned:</p></div>
 <figure class="chart">{{curves_svg}}
-<figcaption>Success during the second stage on validation scenes (20 per point, mean of {{n_seeds}} seeds). Pushing collapses for fine-tuning and EWC
-before the first check and declines gradually under replay; the gated policy's pushing does not move.</figcaption></figure>
+<figcaption>Success during the second stage on validation scenes (20 per point, mean of {{n_seeds}} seeds). {{curves_text}}</figcaption></figure>
 <div class="prose">
 <h3>Both freezing and gating are needed</h3>
 <p>Pushing success after stage B, with the gate on or off when pushing is tested, for policies trained with or without freezing the core during stage B:</p></div>
 {{freeze_table}}
-<div class="prose" style="margin-top:14px"><p>Without freezing, stage B rewrites the core; without the gate, the units trained for stacking interfere. Either one alone keeps nothing.</p>
-
-<h3>Which units form the core matters little</h3>
-<p>A core chosen by intervention (the groups whose silencing hurts pushing most) can carry pushing on its own before any consolidation
-(seeds 0/1/2: {{abl_start}}% vs {{rand_start}}% for a random core of the same size), but after 500 consolidation updates both reach
-{{cons_range}}%, and through stage B a random core does as well: {{abl_avg}}% vs {{rand_avg}}% two-task average.</p>
-</div>
-{{core_tables}}
-<div class="prose">
-<h3>How much of the network each task reserves</h3>
-<p>Core size is the gate's capacity setting. Its memory stays the same (one bit per unit group and task), but a larger core keeps more
-of each old skill's computation and leaves fewer free units for the next task. {{size_text}}</p></div>
-{{size_table}}
-<div class="prose">
-<h3>When the tasks exceed the capacity</h3>
-<p>Both methods reserve a fixed share of the network per task, so a fixed network holds a fixed number of tasks. Here each method
-gives the first two tasks half of the network each, so the third task finds nothing free: it cannot be learned unless the earlier
-tasks give up part of their share, which they then lose. Neither method can add tasks beyond its capacity without that trade. {{full_text}}</p></div>
-{{full_section}}
-<div class="prose">
-<h3>The gated policy keeps the stacks it builds</h3>
-<p>Fine-tuning reaches a stack more often, yet the gated policy ends more episodes with the cubes stacked. Per-step traces show that every
-method often undoes a finished stack &mdash; in {{regrasp_share}}% of these cases by grasping the top cube again and lifting it off, since the
-demonstrations end at success and never show what to do afterwards &mdash; and that the gated policy undoes its stacks less often.</p></div>
-<figure class="chart narrow">{{kept_svg}}
-<figcaption>Share of test episodes with the red cube resting on the green cube at each moment (mean of {{n_seeds}} seeds). Kept = stacked at the end, among episodes that stacked at some point:
-{{kept_text}}.</figcaption></figure>
+<div class="prose" style="margin-top:14px"><p>{{freeze_text}}</p></div>
 {{exec_section}}
+</section>
+
+<section id="next">
+<div class="prose"><h2>Next steps</h2>
+<p>Two preliminary results point to ways of improving the method.</p>
+<h3>Choosing the units of each core</h3>
+<p>{{next_core}}</p></div>
+{{next_core_table}}
+<div class="prose"><h3>Making room when the network is full</h3>
+<p>{{next_capacity}}</p></div>
+{{next_capacity_table}}
 </section>
 
 <section id="limits">
 <div class="prose"><h2>Limitations</h2>
 <ul>
-<li><b>Plasticity cost.</b> Frozen units make a new task harder to learn in the two-task study: stacking {{gate_stack}}% vs {{seqft_stack}}% for fine-tuning.
-The reversed stack, learned third, reaches {{three_gate_gor}}% vs {{three_seqft_gor}}%.</li>
-<li><b>PackNet is ahead at a quarter of the network per task</b> ({{q_packnet_avg}}% vs {{q_gate_avg}}% after three tasks), because the gated policy keeps red on green less well ({{q_gate_rog}}% vs {{q_packnet_rog}}%).</li>
-<li><b>Capacity.</b> Each task's core takes a fixed share of the unit groups, so a fixed network admits a fixed number of tasks; smaller cores admit
-more but keep less (three-task average {{q_gate_avg}}% with 25% cores, {{three_gate_avg}}% with 5%). Sequences longer than three tasks were not tested.</li>
-<li><b>Selection on the test scenes.</b> Configurations were chosen on the same test scenes they are reported on, by the same rule for every method; a separate validation split would give unbiased estimates.</li>
-<li><b>Task identity comes from the instruction string.</b> An instruction worded differently would not be routed to its core.</li>
-<li><b>Consolidating a later task is not free.</b> Re-expressing stacking in its core kept success at any step but lowered success at the final step (e.g. 21% &rarr; 12% on seed 0).</li>
-<li><b>Scope.</b> Simulation only, one fixed camera, demonstrations from a motion planner that sees object poses, {{n_seeds}} training seeds.</li>
+<li><b>Capacity.</b> Each task reserves a fixed share, so a fixed network holds a fixed number of tasks; a further task needs
+earlier tasks to give up part of theirs (<a href="#next">next steps</a>).</li>
+<li><b>Larger allocations.</b> PackNet is ahead at 10% and 25% per task: {{k10_packnet_avg}} vs {{k10_gate_avg}} and {{q_packnet_avg}}%
+vs {{q_gate_avg}}% after three tasks.</li>
+<li><b>Scope.</b> Simulation only, three tasks, one camera and {{n_seeds}} training seeds; each task is recognised by its exact
+instruction.</li>
 </ul></div>
 </section>
 
@@ -357,6 +367,21 @@ bash scripts/setup_env.sh && source scripts/env.sh
 python scripts/download_assets.py && python scripts/replay_demos.py
 MAX=2 bash experiments/run_jobs.sh experiments/01_main_study.jobs
 python scripts/export_results.py --root $CVLA_RUNS/final --out results.json</pre>
+<h3 id="hardware">Hardware and software</h3>
+<p>Runs were trained and scored on two GPU types. Every machine used ManiSkill 3.0.1, SAPIEN 3.0.3, Transformers 5.5.4 and PyTorch 2.11.0.
+Repeated evaluations of a checkpoint on one GPU type agree (exactly, or within one episode in a hundred), but the same checkpoint scored
+pushing 91% on the RTX 5090 and 85% on an RTX 4090 (validation scenes; 8 of 100 episodes ended differently). Differences of a few points
+between runs on different GPU types, such as the gate against ER-500 after two tasks, against joint training after three, and the two
+methods at 10% per task, are within this sensitivity.</p></div>
+<div class="tablewrap" style="max-width:900px;margin:14px auto 0"><table><thead><tr><th>Machine</th><th>GPU</th><th>Driver</th>
+<th>PyTorch build</th><th>Reported runs trained and scored there</th></tr></thead><tbody>
+<tr><td>Rented machine</td><td>RTX 5090</td><td>580.105.08</td><td>CUDA 13.0</td><td>fine-tuning, EWC and replay through task 2, and
+EWC's third task; fine-tuning's extra stacking updates and third task (seeds 1, 2) and ER-500's extra stacking updates (seed 2); joint
+training; the gate at 10% (seeds 0, 1), and its stacking consolidation and third task at 2.5% (seeds 1, 2)</td></tr>
+<tr><td>Two local servers</td><td>RTX 4090</td><td>535.230.02, 535.54.03</td><td>CUDA 12.6</td><td>everything else, including the gate and
+PackNet at 5% (every stage and seed), PackNet at every allocation and all analyses of the 5% configuration</td></tr>
+</tbody></table></div>
+<div class="prose">
 
 <h2 style="margin-top:56px">References</h2>
 <ol class="refs">
