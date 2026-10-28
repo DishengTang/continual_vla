@@ -3,7 +3,8 @@
     python scripts/export_results.py --root $CVLA_RUNS/final --ewc B_ewc0.1 [--out results.json]
 
 Per seed: PushCube stage results; for each condition the PushCube result before the StackCube stage,
-the StackCube-stage learning curve (validation resets, every 2000 updates) and the final test results
+the StackCube-stage learning curve (validation resets, every 2000 updates; earlier points from a run of the
+stage's first 2000 updates) and the final test results
 (success at any step and at the final step); consolidation-recovery points for random and
 importance-selected cores; frozen/plastic parameter counts; gate-off evaluations. Conditions whose
 runs exist only for some seeds (references and ablations) are exported where present. Core-size pilots
@@ -11,6 +12,7 @@ runs exist only for some seeds (references and ablations) are exported where pre
 Per-step trace summaries of the StackCube-stage checkpoints (scripts/analyze_traces.py). The three-task
 sequence: every task before and after the third task (green cube on red cube) with wrong-order rates,
 and its learning curves. Executed actions per chunk (1-50) for the seed-0 StackCube-stage checkpoints.
+For the per-task budget comparison: the share of the action expert frozen after task 1 and after tasks 1 and 2.
 For stacking tasks, "wrong"/"wrong_end" is the percentage of episodes that built the opposite stack.
 """
 
@@ -117,8 +119,14 @@ def main():
                   "gate_k5c": ("A_core_rand_k5_c2000", "B_gate_rand_k5_c2000"),
                   "gate_k2p5c": ("A_core_rand_k2p5_c2000", "B_gate_rand_k2p5_c2000"),
                   "gate_k1c": ("A_core_rand_k1_c2000", "B_gate_rand_k1_c2000"),
+                  # the analyses of gate_k5c: core not frozen during stage B; a core selected by intervention; the same
+                  # stage B scored on validation resets every 2000 updates (learning curve)
+                  "gate_nofreeze_k5c": ("A_core_rand_k5_c2000", "B_gate_rand_k5_c2000_nofreeze"),
+                  "gate_abl_k5c": ("A_core_abl_k5_c2000", "B_gate_abl_k5_c2000"),
+                  "gate_k5c_curve": ("A_core_rand_k5_c2000", "B_gate_rand_k5_c2000_curve"),
                   # PackNet at 5% per task matched to gate_k5c (stacking scored before it is pruned, as for "packnet")
-                  "packnet_k5sp": ("A_packnet_k5_r2000_sp", "B_packnet_k5sp")}
+                  "packnet_k5sp": ("A_packnet_k5_r2000_sp", "B_packnet_k5sp"),
+                  "packnet_k1sp": ("A_packnet_k1sp", "B_packnet_k1sp")}
     result = {"ewc_run": args.ewc, "seeds": {}}
     for s in args.seeds:
         root = os.path.join(args.root, f"s{s}")
@@ -136,6 +144,8 @@ def main():
                 "push_before_b": final_test(os.path.join(root, prep), PUSH) if prep else None,
                 "push_after_b": final_test(b_dir, PUSH), "stack_after_b": final_test(b_dir, STACK),
                 "curve": curve(b_dir),
+                # the stage's first 2000 updates run again and scored more often (learning curve before 2000)
+                "curve_early": curve(os.path.join(root, b.removesuffix("_curve") + "_early")),
                 "freeze": json.load(open(freeze)) if os.path.exists(freeze) else None,
                 "gate_off_push": [r for r in rows(os.path.join(b_dir, "evals_test_exec5_nogate.jsonl"))],
             }
@@ -166,8 +176,10 @@ def main():
         for keep, stage in (("0p5", "A_core_rand_k0p5"), ("1", "A_core_rand_k1"), ("2p5", "A_core_rand_k2p5"),
                             ("5", "A_core_rand_k5"), ("10", "A_core_rand_k10"), ("25", "A_core_rand"), ("50", "A_core_rand_k50"),
                             ("1c", "A_core_rand_k1_c2000"), ("2p5c", "A_core_rand_k2p5_c2000"), ("5c", "A_core_rand_k5_c2000"),
-                            ("bundle", "A_core_bundle")):
-            after = final_test(os.path.join(root, stage), PUSH)
+                            ("abl5c", "A_core_abl_k5_c2000"), ("bundle", "A_core_bundle")):
+            # a running stage has only its initial test evaluation, which final_test would return
+            done = os.path.exists(os.path.join(root, stage, "stage.json"))
+            after = final_test(os.path.join(root, stage), PUSH) if done else None
             if after:
                 core_push[keep] = {"before": core_initial(root, stage), "after": after}
         if core_push:
@@ -178,14 +190,37 @@ def main():
                             ("packnet_k5sp", "A_packnet_k5_r2000_sp"), ("gate_k2p5c", "A_core_rand_k2p5_c2000"),
                             ("packnet_k2p5sp", "A_packnet_k2p5sp"), ("gate_k50", "A_core_rand_k50"),
                             ("packnet_k50sp", "A_packnet_k50sp"), ("gate_k10", "A_core_rand_k10"), ("packnet_k10", "A_packnet_k10"),
-                            ("gate_k10c", "A_core_rand_k10_c2000"), ("packnet_k10sp", "A_packnet_k10sp")):
+                            ("gate_k10c", "A_core_rand_k10_c2000"), ("packnet_k10sp", "A_packnet_k10sp"),
+                            ("gate_k1c", "A_core_rand_k1_c2000"), ("packnet_k1sp", "A_packnet_k1sp")):
             r = final_test(os.path.join(root, stage), PUSH)
             if r:
                 budget[name] = r
         if budget:
             seed["budget_push"] = budget
+        # share of the action expert's weights frozen while task 2 is learned (after task 1) and while task 3 is learned
+        # (after tasks 1 and 2), for the per-task budget comparison
+        protected = {}
+        for name, b, c in (("gate_bundle", "B_gate_bundle", "C_gate_bundle_L24k"), ("packnet", "B_packnet", "C_packnet_L24k"),
+                           ("gate_k10c", "B_gate_rand_k10_c2000", "C_gate_rand_k10_c2000"),
+                           ("packnet_k10sp", "B_packnet_k10sp", "C_packnet_k10sp"),
+                           ("gate_k5c", "B_gate_rand_k5_c2000", "C_gate_rand_k5_c2000"),
+                           ("packnet_k5sp", "B_packnet_k5sp", "C_packnet_k5sp"),
+                           ("gate_k2p5c", "B_gate_rand_k2p5_c2000", "C_gate_rand_k2p5_c2000"),
+                           ("packnet_k2p5sp", "B_packnet_k2p5sp", "C_packnet_k2p5sp"),
+                           ("gate_k1c", "B_gate_rand_k1_c2000", "C_gate_rand_k1_c2000"),
+                           ("packnet_k1sp", "B_packnet_k1sp", "C_packnet_k1sp")):
+            shares = {}
+            for key, stage in (("after_1", b), ("after_2", c)):
+                path = os.path.join(root, stage, "freeze.json")
+                if os.path.exists(path):
+                    f = json.load(open(path))
+                    shares[key] = 100 * f["frozen"] / (f["frozen"] + f["plastic"])
+            if shares:
+                protected[name] = shares
+        if protected:
+            seed["protected"] = protected
         traces = {}
-        for stage in ("B_seqft", "B_er50", "B_gate_rand"):
+        for stage in ("B_seqft", "B_er50", "B_gate_rand", "B_gate_rand_k5_c2000"):
             t, states = load_traces(os.path.join(root, stage), STACK)
             if t is not None:
                 traces[stage] = summarize_traces(t, states)
@@ -193,6 +228,8 @@ def main():
             seed["traces"] = traces
         three = {}
         for name, (b, c) in {"seqft": ("B_seqft", "C_seqft"), "er50": ("B_er50", "C_er50"), "er500": ("B_er500", "C_er500"),
+                             # EWC: the penalty of task 3 uses stage B's Fisher information (red on green) and weights
+                             "ewc": (args.ewc, "C_" + args.ewc.split("_", 1)[1]),
                              "gate_rand": ("B_core_rand", "C_gate_rand"), "gate_k10": ("B_core_rand_k10", "C_gate_rand_k10"),
                              "gate_k5": ("B_core_rand_k5", "C_gate_rand_k5"), "gate_k2p5": ("B_core_rand_k2p5", "C_gate_rand_k2p5"),
                              "gate_k1": ("B_core_rand_k1", "C_gate_rand_k1"), "gate_k0p5": ("B_core_rand_k0p5", "C_gate_rand_k0p5"),
@@ -231,6 +268,7 @@ def main():
                              # reference: all three tasks trained at once from the pretrained policy
                              "joint": ("joint3", "joint3"),
                              "packnet_k10sp": ("B_packnet_k10sp_pruned", "C_packnet_k10sp"),
+                             "packnet_k1sp": ("B_packnet_k1sp_pruned", "C_packnet_k1sp"),
                              # beyond capacity, matched to gate_k50_*: two 50% allocations fill the network; task 3 with
                              # nothing released, or half of each earlier allocation released and no longer used by it
                              "packnet_k50_r0": ("B_packnet_k50sp_pruned", "B_packnet_k50sp_pruned"),
@@ -252,7 +290,7 @@ def main():
         if three:
             seed["three_task"] = three
         sweep = {}
-        for stage in ("B_seqft", "B_er50", "B_gate_rand"):
+        for stage in ("B_seqft", "B_er50", "B_gate_rand", "B_gate_rand_k5_c2000"):
             points = {n: {t: tagged(os.path.join(root, stage), t, f"test_exec{n}") for t in (PUSH, STACK)}
                       for n in (1, 2, 10, 25, 50)}
             points = {n: v for n, v in points.items() if any(x for x in v.values())}
