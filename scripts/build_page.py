@@ -6,7 +6,7 @@ videos (re-encoded and embedded as data URIs) all live inside the output file.
 
 The text is in scripts/page_template.html; every number is computed here from the output of
 scripts/export_results.py. Rollout clips come from a seed-0 test evaluation that recorded every episode
-(scripts/evaluate.py --save-traces --video-all --tag test_videos): for each row the page shows one scene
+(evaluation/evaluate.py --save-traces --video-all --tag test_videos): for each row the page shows one scene
 where every method shows its intended outcome (EXAMPLES below), preferring successes that are still
 complete when the episode ends, with the fewest lapses and the earliest completion. Needs numpy, h5py, Pillow, matplotlib and ffmpeg;
 no simulator, GPU or model.

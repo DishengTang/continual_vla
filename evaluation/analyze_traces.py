@@ -1,7 +1,7 @@
 """Per-step success traces (evaluate.py --save-traces): when episodes first succeed and whether they stay
 successful until the episode ends.
 
-    python scripts/analyze_traces.py --root $CVLA_RUNS/final --stages B_seqft B_er50 B_gate_rand [--out traces.json]
+    python evaluation/analyze_traces.py --root $CVLA_RUNS/final --stages B_seqft B_er50 B_gate_rand [--out traces.json]
 
 For each stage and seed, over the test resets: success at any step and at the final step, the step of
 first success, the fraction of successful episodes still successful at the final step (kept), the

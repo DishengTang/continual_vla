@@ -1,9 +1,9 @@
 """Evaluate a trained stage in closed loop on fixed reset seeds.
 
-    python scripts/evaluate.py --stage $CVLA_RUNS/final/s0/B_seqft --split test --episodes 100
-    python scripts/evaluate.py --stage $CVLA_RUNS/final/s0/B_gate_rand --tasks PushCube-v1 --no-gate
+    python evaluation/evaluate.py --stage $CVLA_RUNS/final/s0/B_seqft --split test --episodes 100
+    python evaluation/evaluate.py --stage $CVLA_RUNS/final/s0/B_gate_rand --tasks PushCube-v1 --no-gate
 
-A stage trained with core gating is evaluated with its gate restored, unless --no-gate is given.
+A stage trained with consolidate-and-gate (or PackNet) is evaluated with its gate restored, unless --no-gate is given.
 Results are appended to <stage>/evals_<tag>.jsonl (the training-time evals.jsonl is not touched).
 """
 

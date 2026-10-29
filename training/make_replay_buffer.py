@@ -1,8 +1,8 @@
 """Write an additional replay buffer for a finished stage, drawn from that stage's training split.
 
-    python scripts/make_replay_buffer.py --stage $CVLA_RUNS/final/s0/A_plus --size 500 --name memory500
+    python training/make_replay_buffer.py --stage $CVLA_RUNS/final/s0/A_plus --size 500 --name memory500
 
-The buffer is sampled the same way train_stage.py samples its own (uniformly without replacement, seeded
+The buffer is sampled the same way every training stage samples its own (uniformly without replacement, seeded
 by the stage's training seed), independently of the stage's existing buffer, and saved as
 <stage>/<name>.{safetensors,json}. Use it with train_stage.py --method er --memory-name <name>.
 """

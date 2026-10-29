@@ -7,8 +7,8 @@ prerequisite path exists (an output of an earlier job). [run_jobs.sh](run_jobs.s
 task of the reported 5% configuration, seed 0:
 
 ```text
-s0_C_gate_rand_k5_c2000|$CVLA_RUNS/final/s0/B_core_rand_k5_c2000/stage.json|scripts/train_stage.py
-    --task StackCubeGreenOnRed-v1 --n-train 900 --steps 12000 --eval-every 100000
+s0_C_gate_rand_k5_c2000|$CVLA_RUNS/final/s0/B_core_rand_k5_c2000/stage.json|training/train_stage.py
+    --method consolidate_gate --task StackCubeGreenOnRed-v1 --n-train 900 --steps 12000 --eval-every 100000
     --final-tasks PushCube-v1 StackCube-v1 StackCubeGreenOnRed-v1 --final-split test --final-episodes 100
     --freeze-core --init $CVLA_RUNS/final/s0/B_core_rand_k5_c2000 --seed 0 --out $CVLA_RUNS/final/s0/C_gate_rand_k5_c2000
 ```
@@ -36,8 +36,10 @@ scores a stage; its output goes to `$CVLA_RUNS/final/s<seed>/<stage>/`.
 
 Files 02-15 start from checkpoints written by 01 (task 1, its importance scores and the replay buffers) and some
 from each other: run them in this order. 03 and later need the green-on-red demonstrations below. Every line was
-checked against the run it reproduces: parsed by the current `train_stage.py`, it gives back the arguments recorded
-in that run's `config.json`.
+checked against the run it reproduces: parsed by the current `training/train_stage.py`, it gives back the arguments
+recorded in that run's `config.json` (runs recorded before the methods were split into one file each name
+consolidate-and-gate and joint training `--method seqft`, and also record four options, unused by any reported run,
+that have since been removed).
 
 ## 1. Environment and data
 
@@ -82,7 +84,7 @@ splits, weights, gate (`core.json`), frozen-parameter counts (`freeze.json`), ev
 
 ```bash
 python scripts/export_results.py --root $CVLA_RUNS/final --out results.json
-python scripts/analyze_traces.py --root $CVLA_RUNS/final          # per-step success and state traces
+python evaluation/analyze_traces.py --root $CVLA_RUNS/final          # per-step success and state traces
 python scripts/build_page.py --results results.json --runs $CVLA_RUNS/final --data $CVLA_DATA \
     --repo-url https://github.com/DishengTang/continual_vla --out docs/index.html
 ```

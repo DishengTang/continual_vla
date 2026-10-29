@@ -9,7 +9,7 @@ stage's first 2000 updates) and the final test results
 importance-selected cores; frozen/plastic parameter counts; gate-off evaluations. Conditions whose
 runs exist only for some seeds (references and ablations) are exported where present. Core-size pilots
 (seed 0, validation resets): PushCube after gated consolidation and both tasks after the StackCube stage.
-Per-step trace summaries of the StackCube-stage checkpoints (scripts/analyze_traces.py). The three-task
+Per-step trace summaries of the StackCube-stage checkpoints (evaluation/analyze_traces.py). The three-task
 sequence: every task before and after the third task (green cube on red cube) with wrong-order rates,
 and its learning curves. Executed actions per chunk (1-50) for the seed-0 StackCube-stage checkpoints.
 For the per-task budget comparison: the share of the action expert frozen after task 1 and after tasks 1 and 2.
@@ -21,7 +21,7 @@ import json
 import os
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "evaluation"))
 from analyze_traces import load as load_traces, summarize as summarize_traces  # noqa: E402
 
 PUSH, STACK, GREEN = "PushCube-v1", "StackCube-v1", "StackCubeGreenOnRed-v1"
@@ -48,7 +48,7 @@ def final_test(run_dir, task):
 
 
 def tagged(run_dir, task, tag):
-    """Last result of a separate evaluation (scripts/evaluate.py, evals_<tag>.jsonl), else None."""
+    """Last result of a separate evaluation (evaluation/evaluate.py, evals_<tag>.jsonl), else None."""
     evals = [r for r in rows(os.path.join(run_dir, f"evals_{tag}.jsonl")) if r["task"] == task]
     return score(evals[-1]) if evals else None
 
@@ -300,7 +300,7 @@ def main():
         if sweep:
             seed["exec_steps"] = sweep
         result["seeds"][s] = seed
-    # seed 0: each task's gated sub-network cut out as a narrower expert (scripts/benchmark_sliced.py), and task records
+    # seed 0: each task's gated sub-network cut out as a narrower expert (evaluation/benchmark_sliced.py), and task records
     stage = os.path.join(args.root, "s0", "C_gate_bundle_L24k_brC")
     sliced = {tag: json.load(open(os.path.join(stage, f"sliced_benchmark{tag}.json")))
               for tag in ("", "_b64", "_cpu20") if os.path.exists(os.path.join(stage, f"sliced_benchmark{tag}.json"))}

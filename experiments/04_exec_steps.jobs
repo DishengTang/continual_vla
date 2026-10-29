@@ -2,18 +2,18 @@
 # Run from the repository root:  source scripts/env.sh && bash experiments/run_jobs.sh experiments/04_exec_steps.jobs
 
 # Executed actions per predicted 50-action chunk (1, 2, 10, 25, 50; 5 is the default), seed 0 StackCube-stage checkpoints, test resets
-s0_B_gate_rand_eval_test_exec1|$CVLA_RUNS/final/s0/B_gate_rand/stage.json|scripts/evaluate.py --stage $CVLA_RUNS/final/s0/B_gate_rand --split test --episodes 100 --exec-steps 1
-s0_B_gate_rand_eval_test_exec2|$CVLA_RUNS/final/s0/B_gate_rand/stage.json|scripts/evaluate.py --stage $CVLA_RUNS/final/s0/B_gate_rand --split test --episodes 100 --exec-steps 2
-s0_B_gate_rand_eval_test_exec10|$CVLA_RUNS/final/s0/B_gate_rand/stage.json|scripts/evaluate.py --stage $CVLA_RUNS/final/s0/B_gate_rand --split test --episodes 100 --exec-steps 10
-s0_B_gate_rand_eval_test_exec25|$CVLA_RUNS/final/s0/B_gate_rand/stage.json|scripts/evaluate.py --stage $CVLA_RUNS/final/s0/B_gate_rand --split test --episodes 100 --exec-steps 25
-s0_B_gate_rand_eval_test_exec50|$CVLA_RUNS/final/s0/B_gate_rand/stage.json|scripts/evaluate.py --stage $CVLA_RUNS/final/s0/B_gate_rand --split test --episodes 100 --exec-steps 50
-s0_B_seqft_eval_test_exec1|$CVLA_RUNS/final/s0/B_seqft/stage.json|scripts/evaluate.py --stage $CVLA_RUNS/final/s0/B_seqft --split test --episodes 100 --exec-steps 1
-s0_B_seqft_eval_test_exec2|$CVLA_RUNS/final/s0/B_seqft/stage.json|scripts/evaluate.py --stage $CVLA_RUNS/final/s0/B_seqft --split test --episodes 100 --exec-steps 2
-s0_B_seqft_eval_test_exec10|$CVLA_RUNS/final/s0/B_seqft/stage.json|scripts/evaluate.py --stage $CVLA_RUNS/final/s0/B_seqft --split test --episodes 100 --exec-steps 10
-s0_B_seqft_eval_test_exec25|$CVLA_RUNS/final/s0/B_seqft/stage.json|scripts/evaluate.py --stage $CVLA_RUNS/final/s0/B_seqft --split test --episodes 100 --exec-steps 25
-s0_B_seqft_eval_test_exec50|$CVLA_RUNS/final/s0/B_seqft/stage.json|scripts/evaluate.py --stage $CVLA_RUNS/final/s0/B_seqft --split test --episodes 100 --exec-steps 50
-s0_B_er50_eval_test_exec1|$CVLA_RUNS/final/s0/B_er50/stage.json|scripts/evaluate.py --stage $CVLA_RUNS/final/s0/B_er50 --split test --episodes 100 --exec-steps 1
-s0_B_er50_eval_test_exec2|$CVLA_RUNS/final/s0/B_er50/stage.json|scripts/evaluate.py --stage $CVLA_RUNS/final/s0/B_er50 --split test --episodes 100 --exec-steps 2
-s0_B_er50_eval_test_exec10|$CVLA_RUNS/final/s0/B_er50/stage.json|scripts/evaluate.py --stage $CVLA_RUNS/final/s0/B_er50 --split test --episodes 100 --exec-steps 10
-s0_B_er50_eval_test_exec25|$CVLA_RUNS/final/s0/B_er50/stage.json|scripts/evaluate.py --stage $CVLA_RUNS/final/s0/B_er50 --split test --episodes 100 --exec-steps 25
-s0_B_er50_eval_test_exec50|$CVLA_RUNS/final/s0/B_er50/stage.json|scripts/evaluate.py --stage $CVLA_RUNS/final/s0/B_er50 --split test --episodes 100 --exec-steps 50
+s0_B_gate_rand_eval_test_exec1|$CVLA_RUNS/final/s0/B_gate_rand/stage.json|evaluation/evaluate.py --stage $CVLA_RUNS/final/s0/B_gate_rand --split test --episodes 100 --exec-steps 1
+s0_B_gate_rand_eval_test_exec2|$CVLA_RUNS/final/s0/B_gate_rand/stage.json|evaluation/evaluate.py --stage $CVLA_RUNS/final/s0/B_gate_rand --split test --episodes 100 --exec-steps 2
+s0_B_gate_rand_eval_test_exec10|$CVLA_RUNS/final/s0/B_gate_rand/stage.json|evaluation/evaluate.py --stage $CVLA_RUNS/final/s0/B_gate_rand --split test --episodes 100 --exec-steps 10
+s0_B_gate_rand_eval_test_exec25|$CVLA_RUNS/final/s0/B_gate_rand/stage.json|evaluation/evaluate.py --stage $CVLA_RUNS/final/s0/B_gate_rand --split test --episodes 100 --exec-steps 25
+s0_B_gate_rand_eval_test_exec50|$CVLA_RUNS/final/s0/B_gate_rand/stage.json|evaluation/evaluate.py --stage $CVLA_RUNS/final/s0/B_gate_rand --split test --episodes 100 --exec-steps 50
+s0_B_seqft_eval_test_exec1|$CVLA_RUNS/final/s0/B_seqft/stage.json|evaluation/evaluate.py --stage $CVLA_RUNS/final/s0/B_seqft --split test --episodes 100 --exec-steps 1
+s0_B_seqft_eval_test_exec2|$CVLA_RUNS/final/s0/B_seqft/stage.json|evaluation/evaluate.py --stage $CVLA_RUNS/final/s0/B_seqft --split test --episodes 100 --exec-steps 2
+s0_B_seqft_eval_test_exec10|$CVLA_RUNS/final/s0/B_seqft/stage.json|evaluation/evaluate.py --stage $CVLA_RUNS/final/s0/B_seqft --split test --episodes 100 --exec-steps 10
+s0_B_seqft_eval_test_exec25|$CVLA_RUNS/final/s0/B_seqft/stage.json|evaluation/evaluate.py --stage $CVLA_RUNS/final/s0/B_seqft --split test --episodes 100 --exec-steps 25
+s0_B_seqft_eval_test_exec50|$CVLA_RUNS/final/s0/B_seqft/stage.json|evaluation/evaluate.py --stage $CVLA_RUNS/final/s0/B_seqft --split test --episodes 100 --exec-steps 50
+s0_B_er50_eval_test_exec1|$CVLA_RUNS/final/s0/B_er50/stage.json|evaluation/evaluate.py --stage $CVLA_RUNS/final/s0/B_er50 --split test --episodes 100 --exec-steps 1
+s0_B_er50_eval_test_exec2|$CVLA_RUNS/final/s0/B_er50/stage.json|evaluation/evaluate.py --stage $CVLA_RUNS/final/s0/B_er50 --split test --episodes 100 --exec-steps 2
+s0_B_er50_eval_test_exec10|$CVLA_RUNS/final/s0/B_er50/stage.json|evaluation/evaluate.py --stage $CVLA_RUNS/final/s0/B_er50 --split test --episodes 100 --exec-steps 10
+s0_B_er50_eval_test_exec25|$CVLA_RUNS/final/s0/B_er50/stage.json|evaluation/evaluate.py --stage $CVLA_RUNS/final/s0/B_er50 --split test --episodes 100 --exec-steps 25
+s0_B_er50_eval_test_exec50|$CVLA_RUNS/final/s0/B_er50/stage.json|evaluation/evaluate.py --stage $CVLA_RUNS/final/s0/B_er50 --split test --episodes 100 --exec-steps 50

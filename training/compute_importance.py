@@ -1,12 +1,12 @@
-"""Compute intervention-derived importance for a finished stage (and its shuffled control).
+"""Compute intervention-derived importance of the unit groups for a finished stage.
 
-    python scripts/compute_importance.py --stage $CVLA_RUNS/dev1/A
-    python scripts/compute_importance.py --stage $CVLA_RUNS/final/s0/B_core_rand --task PushCube-v1 --gated
+    python training/compute_importance.py --stage $CVLA_RUNS/dev1/A
+    python training/compute_importance.py --stage $CVLA_RUNS/final/s0/B_core_rand --task PushCube-v1 --gated
 
-Writes into the stage directory: ablation.safetensors, ablation_shuffled.safetensors (per-parameter
-importance, mean 1) and ablation_scores.json (group-level loss increases). With --task (an earlier task
-of the stage) and/or --gated (the stage's context gate on for that task's instruction, as the policy runs
-it), only the scores are written, to ablation_scores_<task>[_gated].json.
+Writes the loss increase when each unit group is silenced (continual_vla/importance.py) into the stage directory:
+ablation_scores.json, which consolidate-and-gate reads to choose importance-selected cores (--core-from). With --task
+(an earlier task of the stage) and/or --gated (the stage's context gate on for that task's instruction, as the policy
+runs it), to ablation_scores_<task>[_gated].json instead, which --release reads to free the least important groups.
 """
 
 import argparse
@@ -18,11 +18,9 @@ import time
 def main():
     import numpy as np
     import torch
-    from safetensors.torch import save_file
 
     from continual_vla.data import DemoSet, load_splits
-    from continual_vla.importance import (ablation_scores, expert_groups, parameter_importance,
-                                          shuffle_within_kind)
+    from continual_vla.importance import ablation_scores, expert_groups
     from continual_vla.policy import build_policy, load_trainable, raw_batch
 
     p = argparse.ArgumentParser()
@@ -57,12 +55,10 @@ def main():
 
     groups = expert_groups(policy, args.mlp_block)
     if args.gated:
-        from continual_vla.gating import ContextGate
+        from continual_vla.methods.consolidate_gate import gate_from_core
         with open(os.path.join(args.stage, "core.json")) as f:
             core = json.load(f)
-        gate = ContextGate(policy, groups)
-        for entry in core.get("earlier", []) + [core]:
-            gate.silence(entry["instruction"], entry["silenced"])
+        gate = gate_from_core(policy, core)
         gate.set_context([data.instruction] * args.batch)
     t0 = time.time()
     base, scores = ablation_scores(policy, batches, groups)
@@ -75,14 +71,8 @@ def main():
             json.dump({"base_loss": base, "groups": groups, "scores": scores.tolist(), "task": task_id,
                        "gated": args.gated}, f)
         return
-    shuffled = shuffle_within_kind(groups, scores, args.seed)
-    save_file({n: t.contiguous() for n, t in parameter_importance(policy, groups, scores).items()},
-              os.path.join(args.stage, "ablation.safetensors"))
-    save_file({n: t.contiguous() for n, t in parameter_importance(policy, groups, shuffled).items()},
-              os.path.join(args.stage, "ablation_shuffled.safetensors"))
     with open(os.path.join(args.stage, "ablation_scores.json"), "w") as f:
-        json.dump({"base_loss": base, "groups": groups, "scores": scores.tolist(),
-                   "shuffled": shuffled.tolist()}, f)
+        json.dump({"base_loss": base, "groups": groups, "scores": scores.tolist()}, f)
 
 
 if __name__ == "__main__":

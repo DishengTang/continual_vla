@@ -1,7 +1,7 @@
-"""Inference cost of each task's gated sub-network cut out as a narrower action expert (continual_vla/sliced.py),
+"""Inference cost of each task's gated sub-network cut out as a narrower action expert (slice_expert in continual_vla/methods/consolidate_gate.py),
 against the full-size network that PackNet runs for every task (and that the gate runs before cutting).
 
-    python scripts/benchmark_sliced.py --stage $CVLA_RUNS/final/s0/C_gate_bundle_L24k_brC \
+    python evaluation/benchmark_sliced.py --stage $CVLA_RUNS/final/s0/C_gate_bundle_L24k_brC \
         --packnet $CVLA_RUNS/final/s0/C_packnet_L24k --rollouts 100
 
 For every task of the stage: the narrow network's actions against the gated network's on the same inputs and noise
@@ -26,7 +26,7 @@ def main():
 
     from continual_vla.importance import expert_groups
     from continual_vla.policy import REST_QPOS, raw_batch
-    from continual_vla.sliced import expert_size, slice_expert
+    from continual_vla.methods.consolidate_gate import expert_size, slice_expert
     from continual_vla.stages import load_stage
     from continual_vla.tasks import IMAGE_SIZE, SEQUENCE, SPLIT_SEEDS, TASKS
 

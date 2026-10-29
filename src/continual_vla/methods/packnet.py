@@ -6,6 +6,9 @@ then frozen. A later task trains only free weights. A task is evaluated with the
 weights owned by later tasks or still free are zeroed. One-dimensional parameters (biases, norms) are shared: trained
 with the first task, then frozen; with share_projections the state/action/time projections are shared the same way, as
 under the context gate. Task identity is the instruction, as for the context gate.
+
+A stage of this method either prunes and retrains the task just learned (--packnet-prune, with --init the stage that
+learned it and the same --task) or learns a new task on the free weights (optionally after --packnet-release).
 """
 
 import json
@@ -13,6 +16,9 @@ import os
 
 import torch
 from safetensors.torch import load_file, save_file
+
+from ..tasks import TASKS
+from .base import Method, family_counts
 
 PROJECTIONS = ("state_proj", "action_in_proj", "action_out_proj", "action_time_mlp")
 
@@ -117,3 +123,48 @@ class PackNet:
                 o = self.owner[n]
                 p.mul_(((o >= 1) & (o <= k)).to(p.dtype))
             self.active = k
+
+
+class PackNetMethod(Method):
+    @staticmethod
+    def add_args(group):
+        group.add_argument("--packnet-prune", action="store_true",
+                           help="prune the task in --init (same --task) to its --packnet-keep largest free weights "
+                                "of every weight matrix, retrain those for --steps updates, then freeze them")
+        group.add_argument("--packnet-keep", type=float, default=0.25, help="fraction of every weight matrix a task keeps")
+        group.add_argument("--packnet-share-projections", action="store_true",
+                           help="state/action/time projections are shared like the 1-D parameters (as under the context gate)")
+        group.add_argument("--packnet-release", type=float, default=0.0,
+                           help="learning a new task: free this fraction of each earlier task's weights first (smallest magnitude)")
+
+    def setup(self):
+        args, params = self.stage.args, self.stage.params
+        assert args.weight_decay == 0, "PackNet keeps weights fixed by zeroing their gradients"
+        packnet = self.packnet = PackNet.load(args.init, params) if args.init else PackNet(params)
+        if args.packnet_prune:
+            k = packnet.prune(TASKS[args.task].instruction, args.packnet_keep, args.packnet_share_projections)
+            packnet.training_task = k
+            trainable = packnet.trainable_masks(k)
+        else:
+            assert TASKS[args.task].instruction not in packnet.tasks, "a PackNet task is learned once"
+            if args.packnet_release:
+                print(f"packnet: released {packnet.release(args.packnet_release)} weights of earlier tasks", flush=True)
+            trainable = packnet.trainable_masks()
+        self.frozen = {n: ~m for n, m in trainable.items()}
+        self.reference = {n: p.detach().cpu().clone() for n, p in params.items()}  # frozen values after pruning
+        counts = {"frozen": sum(int(m.sum()) for m in self.frozen.values()),
+                  "plastic": sum(int((~m).sum()) for m in self.frozen.values()),
+                  "owned": {i + 1: packnet.count(i + 1) for i in range(len(packnet.tasks))},
+                  "by_module": family_counts(params, self.frozen)}
+        with open(os.path.join(args.out, "freeze.json"), "w") as f:
+            json.dump(counts, f)
+        print(f"packnet: tasks {packnet.tasks}; {counts['frozen']} frozen and {counts['plastic']} plastic parameters",
+              flush=True)
+        self.context_fn = packnet.set_context
+
+    def before_checkpoint(self):
+        self.packnet.restore()
+
+    def finish(self):
+        self.packnet.restore()
+        self.packnet.save(self.stage.args.out)

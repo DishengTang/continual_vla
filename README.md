@@ -47,8 +47,8 @@ The earlier task's gated computation then uses only frozen weights, so it is pre
 plasticity: later tasks are learned with fewer free units. The mechanism follows context-dependent gating
 with synaptic stabilisation ([Masse, Grant & Freedman, 2018](https://doi.org/10.1073/pnas.1803839115));
 in machine-learning terms it is related to PackNet and HAT, applied to whole heads and MLP blocks and keyed
-by the language instruction. Implementation: [gating.py](src/continual_vla/gating.py),
-[importance.py](src/continual_vla/importance.py) and the core options of [train_stage.py](scripts/train_stage.py).
+by the language instruction. Implementation: [consolidate_gate.py](src/continual_vla/methods/consolidate_gate.py),
+trained with `--method consolidate_gate` by the pipeline every method shares, [train_stage.py](training/train_stage.py).
 
 ## Setup
 
@@ -69,12 +69,17 @@ The policy never receives object or target positions, rewards or success signals
 ## Repository layout
 
 ```
-├── src/continual_vla/   library: tasks and custom task, observation filter, policy, data, gating,
-│                        importance, continual-learning methods, closed-loop evaluation
-├── scripts/             command-line entry points: environment setup, data, training (train_stage.py),
-│                        evaluation, analysis, results export and the project page (build_page.py)
-├── experiments/         the exact arguments of every reported run, and a runner
-└── docs/                project page (index.html, one self-contained file) and guides
+├── src/continual_vla/     library: tasks and the custom task, observation filter, policy, demonstrations,
+│   │                      unit groups and their importance, closed-loop evaluation, loading a trained stage
+│   └── methods/           one file per continual-learning method, chosen with --method: consolidate_gate.py
+│                          (this project's method), seqft.py, er.py, ewc.py, packnet.py, joint.py, and the
+│                          hooks they implement (base.py)
+├── training/              train_stage.py, the training pipeline every method shares; importance scores and
+│                          replay buffers of finished stages
+├── evaluation/            closed-loop evaluation of saved stages, per-step traces, cut-out sub-networks
+├── scripts/               environment setup, data preparation, results export and the project page
+├── experiments/           the exact arguments of every reported run, and a runner
+└── docs/                  project page (index.html, one self-contained file) and guides
 ```
 
 ## Installation and reproduction

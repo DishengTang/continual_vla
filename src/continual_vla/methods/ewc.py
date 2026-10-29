@@ -1,6 +1,17 @@
-"""Continual-learning methods: parameter-importance estimates and the consolidation penalty."""
+"""Elastic weight consolidation (Kirkpatrick et al., 2017): a quadratic penalty keeps the parameters near their values
+after the earlier tasks, weighted by a diagonal importance estimate.
+
+Every stage, whatever its method, writes fisher.safetensors at its end (the importance of its own task); a later EWC
+stage adds (--ewc-lambda / 2) x sum_i F_i (theta_i - theta*_i)^2 to its loss, with theta* the --init weights. The same
+Fisher-weighted drift is logged for every method whose --init has a Fisher estimate.
+"""
+
+import os
 
 import torch
+from safetensors.torch import save_file
+
+from .base import Method
 
 
 def fisher_diagonal(params, example_loss_fn, n_examples):
@@ -36,3 +47,24 @@ class Importance:
         for n, p in params.items():
             total = total + (self.fisher[n] * (p - self.anchor[n]) ** 2).sum()
         return total
+
+
+class EWC(Method):
+    @staticmethod
+    def add_args(group):
+        group.add_argument("--ewc-lambda", type=float, default=1.0, help="weight of the penalty")
+
+    @staticmethod
+    def save_for_later_stages(stage):
+        stage.policy.train()
+        fisher = fisher_diagonal(stage.params, lambda: stage.loss_on(stage.make_batch(stage.data, size=1)),
+                                 stage.args.fisher_samples)
+        save_file({n: f.cpu().contiguous() for n, f in fisher.items()}, os.path.join(stage.args.out, "fisher.safetensors"))
+
+    def setup(self):
+        assert self.stage.importance is not None, "ewc needs fisher.safetensors in --init"
+
+    def loss(self, step):
+        loss, _, logged = super().loss(step)
+        weighted = self.stage.importance.drift(self.stage.params)
+        return loss, loss + 0.5 * self.stage.args.ewc_lambda * weighted, {**logged, "drift": weighted}
