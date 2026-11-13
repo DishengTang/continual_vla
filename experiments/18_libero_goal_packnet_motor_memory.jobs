@@ -1,0 +1,6 @@
+# PackNet and this project's method (contextual motor memory) for pi0 on LIBERO-Goal, otherwise as 16_libero_goal_pi0.jobs.
+# PackNet follows LIBERO's rule in each of the three training modes; the motor memory's units are in the action expert.
+s0_goal_expert_packnet|-|training/train_libero.py --suite libero_goal --method packnet --model pi0 --train expert --seed 0 --frames-in-memory --out $CVLA_RUNS/libero/libero_goal/pi0_expert/packnet/s0
+s0_goal_lora_packnet|-|training/train_libero.py --suite libero_goal --method packnet --model pi0 --train lora --seed 0 --frames-in-memory --out $CVLA_RUNS/libero/libero_goal/pi0_lora/packnet/s0
+s0_goal_full_packnet|-|training/train_libero.py --suite libero_goal --method packnet --model pi0 --train full --seed 0 --ckpt-every 10000 --frames-in-memory --out $CVLA_RUNS/libero/libero_goal/pi0_full/packnet/s0
+s0_goal_expert_motor_memory|-|training/train_libero.py --suite libero_goal --method motor_memory --model pi0 --train expert --seed 0 --frames-in-memory --out $CVLA_RUNS/libero/libero_goal/pi0_expert/motor_memory/s0

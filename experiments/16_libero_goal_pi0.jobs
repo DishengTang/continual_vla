@@ -1,0 +1,16 @@
+# LIBERO-Goal with pi0 in the setup of Liu et al. (2026) (see training/train_libero.py): their task order, 10000 updates of
+# batch 8 per task from pi0's base weights, one AdamW and one learning-rate schedule through the sequence, per-task
+# normalisation with relative actions, openpi's image augmentation; after each task, 50 test episodes (LIBERO's fixed
+# initial states, a new chunk every 5 actions) on every task learned so far. --frames-in-memory on network disks.
+# --train lora: openpi's low-memory pi0 recipe, as Liu et al.; --train full: every parameter.
+# ER: 1000 examples per task, 8 replayed examples added to the 8 new ones. EWC: online, lambda 50000, gamma 0.9,
+# Fisher from 50 batches of 8 (LIBERO's and Liu et al.'s settings).
+s0_goal_lora_seqft|-|training/train_libero.py --suite libero_goal --method seqft --model pi0 --train lora --seed 0 --frames-in-memory --out $CVLA_RUNS/libero/libero_goal/pi0_lora/seqft/s0
+s0_goal_lora_er|-|training/train_libero.py --suite libero_goal --method er --batch 16 --replay-frac 0.5 --replay-sampling union --memory-size 1000 --model pi0 --train lora --seed 0 --frames-in-memory --out $CVLA_RUNS/libero/libero_goal/pi0_lora/er/s0
+s0_goal_lora_ewc|-|training/train_libero.py --suite libero_goal --method ewc --ewc-lambda 50000 --fisher-samples 50 --fisher-batch 8 --fisher-raw --model pi0 --train lora --seed 0 --frames-in-memory --out $CVLA_RUNS/libero/libero_goal/pi0_lora/ewc/s0
+s0_goal_full_seqft|-|training/train_libero.py --suite libero_goal --method seqft --model pi0 --train full --seed 0 --ckpt-every 5000 --frames-in-memory --out $CVLA_RUNS/libero/libero_goal/pi0_full/seqft/s0
+s0_goal_full_er|-|training/train_libero.py --suite libero_goal --method er --batch 16 --replay-frac 0.5 --replay-sampling union --memory-size 1000 --model pi0 --train full --seed 0 --ckpt-every 5000 --frames-in-memory --out $CVLA_RUNS/libero/libero_goal/pi0_full/er/s0
+# --train expert (local RTX 4090s): the action expert and projections only, the vision-language model frozen.
+s0_goal_expert_seqft|-|training/train_libero.py --suite libero_goal --method seqft --model pi0 --train expert --seed 0 --frames-in-memory --out $CVLA_RUNS/libero/libero_goal/pi0_expert/seqft/s0
+s0_goal_expert_er|-|training/train_libero.py --suite libero_goal --method er --batch 16 --replay-frac 0.5 --replay-sampling union --memory-size 1000 --model pi0 --train expert --seed 0 --frames-in-memory --out $CVLA_RUNS/libero/libero_goal/pi0_expert/er/s0
+s0_goal_expert_ewc|-|training/train_libero.py --suite libero_goal --method ewc --ewc-lambda 50000 --fisher-samples 50 --fisher-batch 8 --fisher-raw --model pi0 --train expert --seed 0 --frames-in-memory --out $CVLA_RUNS/libero/libero_goal/pi0_expert/ewc/s0

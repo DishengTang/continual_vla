@@ -1,0 +1,7 @@
+# The EWC strength for pi0 on LIBERO-Goal, action expert only (--train expert, local RTX 4090s), otherwise as
+# 16_libero_goal_pi0.jobs. With pi0's flow-matching loss, LIBERO's and Liu et al.'s lambda 50000 (s0_goal_expert_ewc
+# there) leaves the penalty's gradient below 10 % of the loss gradient, and EWC forgets like fine-tuning; lambda 5e5 to 5e8.
+s0_goal_expert_ewc_l5e5|-|training/train_libero.py --suite libero_goal --method ewc --ewc-lambda 5e5 --fisher-samples 50 --fisher-batch 8 --fisher-raw --model pi0 --train expert --seed 0 --frames-in-memory --out $CVLA_RUNS/libero/libero_goal/pi0_expert/ewc_l5e5/s0
+s0_goal_expert_ewc_l5e6|-|training/train_libero.py --suite libero_goal --method ewc --ewc-lambda 5e6 --fisher-samples 50 --fisher-batch 8 --fisher-raw --model pi0 --train expert --seed 0 --frames-in-memory --out $CVLA_RUNS/libero/libero_goal/pi0_expert/ewc_l5e6/s0
+s0_goal_expert_ewc_l5e7|-|training/train_libero.py --suite libero_goal --method ewc --ewc-lambda 5e7 --fisher-samples 50 --fisher-batch 8 --fisher-raw --model pi0 --train expert --seed 0 --frames-in-memory --out $CVLA_RUNS/libero/libero_goal/pi0_expert/ewc_l5e7/s0
+s0_goal_expert_ewc_l5e8|-|training/train_libero.py --suite libero_goal --method ewc --ewc-lambda 5e8 --fisher-samples 50 --fisher-batch 8 --fisher-raw --model pi0 --train expert --seed 0 --frames-in-memory --out $CVLA_RUNS/libero/libero_goal/pi0_expert/ewc_l5e8/s0

@@ -14,11 +14,12 @@ from safetensors.torch import save_file
 from .base import Method
 
 
-def fisher_diagonal(params, example_loss_fn, n_examples):
+def fisher_diagonal(params, example_loss_fn, n_examples, normalise=True):
     """Diagonal parameter importance: the mean over examples of each example's squared loss gradient
     (one example per backward pass, so gradients do not cancel within a minibatch), normalised to
     mean 1. `example_loss_fn()` returns the flow-matching loss of one random training example, so
-    this is an empirical-Fisher-style surrogate, not the exact Fisher of a likelihood."""
+    this is an empirical-Fisher-style surrogate, not the exact Fisher of a likelihood. With batches instead of single
+    examples and normalise=False it is the minibatch estimate of LIBERO's and Liu et al.'s EWC."""
     fisher = {n: torch.zeros_like(p) for n, p in params.items()}
     for _ in range(n_examples):
         for p in params.values():
@@ -29,6 +30,8 @@ def fisher_diagonal(params, example_loss_fn, n_examples):
                 fisher[n] += p.grad.detach().float() ** 2
     for p in params.values():
         p.grad = None
+    if not normalise:
+        return {n: f / n_examples for n, f in fisher.items()}
     mean = sum(f.sum() for f in fisher.values()) / sum(f.numel() for f in fisher.values())
     return {n: f / mean for n, f in fisher.items()}
 
@@ -53,12 +56,19 @@ class EWC(Method):
     @staticmethod
     def add_args(group):
         group.add_argument("--ewc-lambda", type=float, default=1.0, help="weight of the penalty")
+        group.add_argument("--fisher-batch", type=int, default=1,
+                           help="examples per backward pass of the Fisher estimate (1: per-example squared gradients)")
+        group.add_argument("--fisher-raw", action="store_true",
+                           help="keep the Fisher estimate's scale (mean of squared gradients) instead of normalising it "
+                                "to mean 1")
 
     @staticmethod
     def save_for_later_stages(stage):
         stage.policy.train()
-        fisher = fisher_diagonal(stage.params, lambda: stage.loss_on(stage.make_batch(stage.data, size=1)),
-                                 stage.args.fisher_samples)
+        args = stage.args
+        size = getattr(args, "fisher_batch", 1)
+        fisher = fisher_diagonal(stage.params, lambda: stage.loss_on(stage.make_batch(stage.data, size=size)),
+                                 args.fisher_samples, normalise=not getattr(args, "fisher_raw", False))
         save_file({n: f.cpu().contiguous() for n, f in fisher.items()}, os.path.join(stage.args.out, "fisher.safetensors"))
 
     def setup(self):

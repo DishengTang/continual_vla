@@ -9,8 +9,12 @@ hooks below; the defaults are plain fine-tuning. A method reaches the running st
 instruction)` and `loss_on(batch)`.
 """
 
+import torch
+
 
 class Method:
+    from_first_task = False  # train_libero.py: the first task of a sequence is plain fine-tuning unless this is set
+
     @staticmethod
     def add_args(group):
         """Command-line options of this method (its argument group of train_stage.py)."""
@@ -49,6 +53,35 @@ class Method:
 
     def finish(self):
         """Called after the last update, before the weights are saved: write this method's own files."""
+
+    # Sequences of training/train_libero.py: a method can follow the task's --steps updates with a second phase.
+
+    def extra_updates(self):
+        """Updates a task can get after its --steps (at the learning rate of update --steps)."""
+        return 0
+
+    def prepare_optimizer(self, optimizer):
+        """Called once the optimizer state of the previous task is loaded."""
+
+    def after_learning(self, optimizer):
+        """Called before update --steps + 1."""
+
+    def after_update(self, step, optimizer):
+        """Called after every update; True ends the task's training."""
+        return False
+
+    def on_resume(self, step, optimizer):
+        """Called after resuming from a checkpoint of update `step`, to restore the method's phase."""
+
+
+@torch.no_grad()
+def clear_moments(optimizer, params, masks):
+    """Zero AdamW's moments of the entries in `masks`: with zero moments and zero gradients an entry does not move."""
+    for n, p in params.items():
+        state = optimizer.state.get(p)
+        if state:
+            state["exp_avg"][masks[n]] = 0
+            state["exp_avg_sq"][masks[n]] = 0
 
 
 def module_family(name):

@@ -1,0 +1,11 @@
+# Which units the motor memory's core takes, for pi0 on LIBERO-Goal, action expert only, first 3 tasks, otherwise as the
+# 1/16 restart runs of 19_libero_goal_share_search.jobs (core of 2 of 32 attention units and 4 of 64 MLP blocks per layer,
+# second phase with its own learning-rate schedule, LIBERO's validation initial states, 50 episodes per task).
+#   importance        units by the first-order Taylor estimate of the loss change when removed (instead of at random)
+#   value             attention units of value and output dimensions only; queries and keys shared, trained with the
+#                     first task and frozen afterwards (instead of query, key, value and output dimensions)
+#   value_importance  both
+# Compared with 19's motor_memory_share16_restart (random qkv units) and packnet_share16_restart.
+s0_goal_expert_mm_share16_restart_importance|-|training/train_libero.py --suite libero_goal --method motor_memory --core-share 0.0625 --unit-select importance --phase2-lr restart --model pi0 --train expert --seed 0 --frames-in-memory --eval-split val --stop-after-tasks 3 --out $CVLA_RUNS/libero/libero_goal_val/pi0_expert/motor_memory_share16_restart_importance/s0
+s0_goal_expert_mm_share16_restart_value|-|training/train_libero.py --suite libero_goal --method motor_memory --core-share 0.0625 --attention-units value --phase2-lr restart --model pi0 --train expert --seed 0 --frames-in-memory --eval-split val --stop-after-tasks 3 --out $CVLA_RUNS/libero/libero_goal_val/pi0_expert/motor_memory_share16_restart_value/s0
+s0_goal_expert_mm_share16_restart_value_importance|-|training/train_libero.py --suite libero_goal --method motor_memory --core-share 0.0625 --attention-units value --unit-select importance --phase2-lr restart --model pi0 --train expert --seed 0 --frames-in-memory --eval-split val --stop-after-tasks 3 --out $CVLA_RUNS/libero/libero_goal_val/pi0_expert/motor_memory_share16_restart_value_importance/s0
