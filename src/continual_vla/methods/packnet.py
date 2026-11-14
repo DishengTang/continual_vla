@@ -22,6 +22,7 @@ from ..tasks import TASKS
 from .base import Method, clear_moments, family_counts
 
 PROJECTIONS = ("state_proj", "action_in_proj", "action_out_proj", "action_time_mlp")
+EXPERT = "model.paligemma_with_expert.gemma_expert.model.layers"  # as in motor_memory.py
 
 
 class PackNet:
@@ -177,14 +178,17 @@ class SequenceMasks(PackNet):
     so a task keeps 1 - prune_perc of what is free. Weights that are not kept become free again, at zero."""
 
     @torch.no_grad()
-    def prune(self, instruction, prune_perc, keep_share=0.0):
+    def prune(self, instruction, prune_perc, keep_share=0.0, shared=()):
         """With keep_share, a task keeps that share of every matrix instead: its largest-magnitude free weights, at most
-        all free ones."""
+        all free ones. The first task keeps every entry of the matrices in `shared`; later tasks find none of them free."""
         self.restore()
         k = len(self.tasks) + 1
         self.tasks.append(instruction)
         for n, p in self.params.items():
             free = self.owner[n] == 0
+            if n in shared:
+                self.owner[n][free] = k
+                continue
             if keep_share:
                 n_keep = min(int(round(keep_share * p.numel())), int(free.sum()))
                 kept = torch.zeros_like(free)
@@ -208,7 +212,9 @@ class SequencePackNet(Method):
     """PackNet in a sequence of tasks (training/train_libero.py), as LIBERO runs it: a task trains the free weights
     for --steps updates, is pruned, and its kept weights are retrained for --packnet-retrain-steps updates, then frozen.
     The weights of Linear and Conv2d layers are pruned and owned; every other parameter (biases, norms, embeddings) never
-    trains. A task is evaluated with its own and earlier tasks' weights."""
+    trains. A task is evaluated with its own and earlier tasks' weights. With --packnet-shared-qk the action expert's
+    query and key weights are not pruned: the first task keeps all of them (trained in both its phases) and later tasks
+    leave them frozen, as the motor memory's value attention units do (--attention-units value)."""
 
     from_first_task = True
 
@@ -219,6 +225,9 @@ class SequencePackNet(Method):
         group.add_argument("--packnet-keep-share", type=float, default=0.0,
                            help="a task keeps this share of every matrix instead (its largest-magnitude free weights); "
                                 "0: LIBERO's rule (--packnet-prune-perc)")
+        group.add_argument("--packnet-shared-qk", action="store_true",
+                           help="the action expert's query and key weights belong to the first task in full (not pruned), "
+                                "frozen for later tasks")
         group.add_argument("--packnet-retrain-steps", type=int, default=10000,
                            help="updates of the kept weights after pruning (LIBERO: as many as the task's training)")
 
@@ -227,6 +236,9 @@ class SequencePackNet(Method):
         args, params, policy = stage.args, stage.params, stage.policy
         masked = {f"{name}.weight" for name, m in policy.named_modules() if isinstance(m, (nn.Linear, nn.Conv2d))}
         self.masks = SequenceMasks({n: p for n, p in params.items() if n in masked})
+        self.shared = {n for n in self.masks.params if n.startswith(EXPERT + ".")
+                       and n.endswith((".self_attn.q_proj.weight", ".self_attn.k_proj.weight"))} if args.packnet_shared_qk else set()
+        assert not args.packnet_shared_qk or self.shared, "no query/key weights of the action expert among the trainable ones"
         if args.init:
             self.masks = SequenceMasks.load(args.init, self.masks.params)
         self.instruction = stage.data.instruction
@@ -268,7 +280,7 @@ class SequencePackNet(Method):
     def after_learning(self, optimizer):
         args = self.stage.args
         self.stage.run_eval(args.steps, [self.stage.task])  # before pruning; the matrix uses the last evaluation
-        k = self.masks.prune(self.instruction, args.packnet_prune_perc, args.packnet_keep_share)
+        k = self.masks.prune(self.instruction, args.packnet_prune_perc, args.packnet_keep_share, self.shared)
         self.masks.save(args.out)
         self._retrain_phase(k, optimizer)
         self._count(f"pruned, {self.masks.count(k)} weights kept")

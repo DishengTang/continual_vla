@@ -24,7 +24,8 @@ src/continual_vla/methods/base.py:
          anchored at the previous task's weights
   packnet       PackNet under LIBERO's rule: after --steps updates a task keeps 25% of the free weights of every matrix
                 (--packnet-keep-share: a fixed share of every matrix instead), retrains them for as many updates and
-                freezes them (methods/packnet.py, SequencePackNet)
+                freezes them (methods/packnet.py, SequencePackNet); --packnet-shared-qk: the action expert's query
+                and key weights belong to the first task in full, as with motor_memory's --attention-units value
   motor_memory  this project's method: after --steps updates a task's skill moves into a core of the action expert's
                 units, sized by need, gated by its instruction and frozen (--train expert; methods/motor_memory.py)
 
@@ -52,7 +53,7 @@ SUPPORTED = ("seqft", "er", "ewc", "packnet", "motor_memory")
 # Options added after the first runs; at these values they are left out of a run's recorded options, so that the
 # earlier runs, which recorded none of them, still resume.
 LATER_OPTIONS = {"phase2_lr": "inherit", "phase2_warmup": 500, "core_share": 0.0, "packnet_keep_share": 0.0,
-                 "unit_select": "random", "attention_units": "qkv"}
+                 "unit_select": "random", "attention_units": "qkv", "packnet_shared_qk": False}
 
 
 def run_config(args):

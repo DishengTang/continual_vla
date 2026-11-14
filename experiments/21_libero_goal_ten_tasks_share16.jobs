@@ -1,0 +1,14 @@
+# The motor memory with value attention units against PackNet for pi0 on LIBERO-Goal, all 10 tasks, action expert only,
+# LIBERO's test initial states, 50 episodes per task, seed 0. A task keeps 1/16 of the action expert (2 of 32 attention
+# units and 4 of 64 MLP blocks per layer for the motor memory, 6.25% of every matrix for PackNet) and its second phase
+# restarts the learning rate, as the 1/16 restart runs of 19_libero_goal_share_search.jobs and
+# 20_libero_goal_unit_choice.jobs (value). Compare with 16_libero_goal_pi0.jobs and 17_libero_goal_ewc_lambda.jobs
+# (fine-tuning, ER, EWC; same tasks, split and seed).
+#   mm_share16_restart_value        motor memory, value attention units (queries and keys trained with the first
+#                                   task, frozen afterwards)
+#   pn_share16_restart              PackNet at the same share
+#   pn_share16_restart_sharedqk     PackNet with the action expert's queries and keys shared as the motor memory's
+#                                   (all owned by the first task, frozen afterwards; --packnet-shared-qk)
+s0_goal_expert_mm_share16_restart_value|-|training/train_libero.py --suite libero_goal --method motor_memory --core-share 0.0625 --attention-units value --phase2-lr restart --model pi0 --train expert --seed 0 --frames-in-memory --out $CVLA_RUNS/libero/libero_goal/pi0_expert/motor_memory_share16_restart_value/s0
+s0_goal_expert_pn_share16_restart|-|training/train_libero.py --suite libero_goal --method packnet --packnet-keep-share 0.0625 --phase2-lr restart --model pi0 --train expert --seed 0 --frames-in-memory --out $CVLA_RUNS/libero/libero_goal/pi0_expert/packnet_share16_restart/s0
+s0_goal_expert_pn_share16_restart_sharedqk|-|training/train_libero.py --suite libero_goal --method packnet --packnet-keep-share 0.0625 --packnet-shared-qk --phase2-lr restart --model pi0 --train expert --seed 0 --frames-in-memory --out $CVLA_RUNS/libero/libero_goal/pi0_expert/packnet_share16_restart_sharedqk/s0
